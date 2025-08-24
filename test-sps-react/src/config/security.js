@@ -1,7 +1,4 @@
-// Configuração de segurança para o frontend
-
 const securityConfig = {
-  // Configurações de CORS
   cors: {
     allowedOrigins: [
       'http://localhost:3000',
@@ -12,15 +9,13 @@ const securityConfig = {
     credentials: true
   },
 
-  // Configurações de autenticação
   auth: {
-    tokenExpiry: 24 * 60 * 60 * 1000, // 24 horas
-    refreshTokenExpiry: 7 * 24 * 60 * 60 * 1000, // 7 dias
+    tokenExpiry: 24 * 60 * 60 * 1000,
+    refreshTokenExpiry: 7 * 24 * 60 * 60 * 1000,
     maxLoginAttempts: 5,
-    lockoutDuration: 15 * 60 * 1000 // 15 minutos
+    lockoutDuration: 15 * 60 * 1000
   },
 
-  // Configurações de validação
   validation: {
     password: {
       minLength: 8,
@@ -39,14 +34,12 @@ const securityConfig = {
     }
   },
 
-  // Configurações de rate limiting
   rateLimit: {
     maxRequests: 100,
-    windowMs: 15 * 60 * 1000, // 15 minutos
+    windowMs: 15 * 60 * 1000,
     skipSuccessfulRequests: false
   },
 
-  // Configurações de logging
   logging: {
     enabled: true,
     level: process.env.NODE_ENV === 'production' ? 'error' : 'debug',
@@ -55,7 +48,6 @@ const securityConfig = {
     apiCalls: process.env.NODE_ENV === 'development'
   },
 
-  // Configurações de headers de segurança
   headers: {
     contentSecurityPolicy: {
       'default-src': ["'self'"],
@@ -69,51 +61,44 @@ const securityConfig = {
       'frame-src': ["'none'"]
     },
     hsts: {
-      maxAge: 31536000, // 1 ano
+      maxAge: 31536000,
       includeSubDomains: true,
       preload: true
     }
   },
 
-  // Configurações de armazenamento seguro
   storage: {
     encryption: process.env.NODE_ENV === 'production',
     prefix: 'sps_secure_',
     sensitiveKeys: ['token', 'refreshToken', 'user']
   },
 
-  // Configurações de sessão
   session: {
-    timeout: 30 * 60 * 1000, // 30 minutos
+    timeout: 30 * 60 * 1000,
     extendOnActivity: true,
     secureOnly: process.env.NODE_ENV === 'production'
   },
 
-  // Configurações de monitoramento
   monitoring: {
     enabled: true,
     trackErrors: true,
     trackPerformance: true,
-    trackUserActions: false, // Privacidade
+    trackUserActions: false,
     anonymizeData: true
   },
 
-  // Configurações de backup e recuperação
   backup: {
     autoBackup: false,
-    backupInterval: 24 * 60 * 60 * 1000, // 24 horas
+    backupInterval: 24 * 60 * 60 * 1000,
     maxBackups: 7
   }
 };
 
-// Funções de utilidade de segurança
 export const securityUtils = {
-  // Verificar se a origem é permitida
   isAllowedOrigin: (origin) => {
     return securityConfig.cors.allowedOrigins.includes(origin);
   },
 
-  // Gerar token seguro
   generateSecureToken: (length = 32) => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     let result = '';
@@ -123,7 +108,6 @@ export const securityUtils = {
     return result;
   },
 
-  // Validar força da senha
   validatePasswordStrength: (password) => {
     const config = securityConfig.validation.password;
     const errors = [];
@@ -151,7 +135,6 @@ export const securityUtils = {
     };
   },
 
-  // Sanitizar dados sensíveis
   sanitizeSensitiveData: (data) => {
     if (typeof data === 'object' && data !== null) {
       const sanitized = {};
@@ -168,26 +151,23 @@ export const securityUtils = {
     return data;
   },
 
-  // Verificar se está em ambiente seguro
   isSecureEnvironment: () => {
     return window.location.protocol === 'https:' || 
            window.location.hostname === 'localhost';
   },
 
-  // Verificar se o token está expirado
   isTokenExpired: (token) => {
     if (!token) return true;
     
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
-      const expiry = payload.exp * 1000; // Converter para milissegundos
+      const expiry = payload.exp * 1000;
       return Date.now() >= expiry;
     } catch {
       return true;
     }
   },
 
-  // Calcular tempo restante do token
   getTokenTimeRemaining: (token) => {
     if (!token) return 0;
     

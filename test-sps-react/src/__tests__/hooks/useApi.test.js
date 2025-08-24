@@ -47,7 +47,6 @@ describe('useApi', () => {
         try {
           await result.current.execute();
         } catch (err) {
-          // Esperado que lance erro
         }
       });
 

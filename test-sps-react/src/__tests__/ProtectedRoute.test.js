@@ -4,10 +4,8 @@ import { BrowserRouter } from 'react-router-dom';
 import ProtectedRoute from '../components/ProtectedRoute';
 import { useAuth } from '../contexts/AuthContext';
 
-// Mock do useAuth
 jest.mock('../contexts/AuthContext');
 
-// Mock do Navigate
 const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
@@ -17,10 +15,8 @@ jest.mock('react-router-dom', () => ({
   },
 }));
 
-// Componente de teste
 const TestComponent = () => <div>Conteúdo Protegido</div>;
 
-// Wrapper para renderizar com BrowserRouter
 const renderWithRouter = (component) => {
   return render(
     <BrowserRouter>

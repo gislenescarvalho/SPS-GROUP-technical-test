@@ -2,10 +2,8 @@ const helmet = require('helmet');
 const config = require('../config');
 const redisService = require('../services/redisService');
 
-// Configuração de CORS mais segura
 const corsOptions = {
   origin: function (origin, callback) {
-    // Permitir requisições sem origin (como aplicações mobile ou Postman)
     if (!origin) return callback(null, true);
     
     if (config.cors.allowedOrigins.indexOf(origin) !== -1) {
@@ -21,7 +19,6 @@ const corsOptions = {
   maxAge: config.cors.maxAge
 };
 
-// Configuração do Helmet
 const helmetConfig = {
   contentSecurityPolicy: {
     directives: {
@@ -37,7 +34,7 @@ const helmetConfig = {
     }
   },
   hsts: {
-    maxAge: 31536000, // 1 ano
+    maxAge: 31536000,
     includeSubDomains: true,
     preload: true
   },
@@ -46,9 +43,7 @@ const helmetConfig = {
   hidePoweredBy: true
 };
 
-// Middleware de rate limiting com Redis
 const rateLimit = async (req, res, next) => {
-  // Verificar se configuração existe
   if (!config.rateLimit) {
     console.warn('⚠️ Configuração de rate limit não encontrada, pulando middleware');
     return next();
@@ -64,7 +59,6 @@ const rateLimit = async (req, res, next) => {
       config.rateLimit.windowMs || 15 * 60 * 1000
     );
     
-    // Adicionar headers de rate limiting
     res.setHeader('X-RateLimit-Limit', config.rateLimit.max || 100);
     res.setHeader('X-RateLimit-Remaining', result.remaining);
     res.setHeader('X-RateLimit-Reset', Math.ceil(result.resetTime / 1000));
@@ -80,18 +74,14 @@ const rateLimit = async (req, res, next) => {
     next();
   } catch (error) {
     console.error('❌ Erro no rate limiting:', error.message);
-    // Em caso de erro, permitir a requisição
     next();
   }
 };
 
-// Middleware para remover headers sensíveis
 const removeSensitiveHeaders = (req, res, next) => {
-  // Remover headers que podem expor informações sensíveis
   res.removeHeader('X-Powered-By');
   res.removeHeader('Server');
   
-  // Adicionar headers de segurança customizados
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');

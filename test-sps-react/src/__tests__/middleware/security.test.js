@@ -10,7 +10,6 @@ import {
 describe('Security Middleware', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    // Mock do console para evitar logs nos testes
     jest.spyOn(console, 'log').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
     jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -81,7 +80,6 @@ describe('Security Middleware', () => {
 
   describe('secureStorage', () => {
     beforeEach(() => {
-      // Mock do localStorage
       const localStorageMock = {
         getItem: jest.fn(),
         setItem: jest.fn(),
@@ -186,7 +184,6 @@ describe('Security Middleware', () => {
 
         securityMiddleware.afterResponse(response);
 
-        // Não deve gerar warning
         expect(console.warn).not.toHaveBeenCalled();
       });
 

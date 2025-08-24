@@ -1,52 +1,74 @@
 import { useState, useCallback } from 'react';
+import * as yup from 'yup';
 
-export const useValidation = (schema) => {
+const useValidation = (schema) => {
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
 
-  // Validar campo específico
-  const validateField = useCallback(async (fieldName, value) => {
+  const validateField = useCallback(async (field, value) => {
     try {
-      await schema.validateAt(fieldName, { [fieldName]: value });
-      setErrors(prev => ({ ...prev, [fieldName]: undefined }));
-      return true;
+      await schema.validateAt(field, { [field]: value });
+      setErrors(prev => ({ ...prev, [field]: null }));
+      return null;
     } catch (error) {
-      setErrors(prev => ({ ...prev, [fieldName]: error.message }));
-      return false;
+      const fieldError = error.message;
+      setErrors(prev => ({ ...prev, [field]: fieldError }));
+      return fieldError;
     }
   }, [schema]);
 
-  // Validar todos os campos
   const validateAll = useCallback(async (data) => {
     try {
       await schema.validate(data, { abortEarly: false });
       setErrors({});
       return { isValid: true, errors: {} };
     } catch (error) {
-      const newErrors = {};
-      error.inner.forEach((err) => {
-        newErrors[err.path] = err.message;
+      const validationErrors = {};
+      error.inner.forEach(err => {
+        validationErrors[err.path] = err.message;
       });
-      setErrors(newErrors);
-      return { isValid: false, errors: newErrors };
+      setErrors(validationErrors);
+      return { isValid: false, errors: validationErrors };
     }
   }, [schema]);
 
-  // Marcar campo como tocado
-  const setFieldTouched = useCallback((fieldName) => {
-    setTouched(prev => ({ ...prev, [fieldName]: true }));
+  const setFieldTouched = useCallback((field, isTouched = true) => {
+    setTouched(prev => ({ ...prev, [field]: isTouched }));
   }, []);
 
-  // Limpar erros
+  const setAllTouched = useCallback((isTouched = true) => {
+    const allFields = Object.keys(schema.fields);
+    const touchedState = {};
+    allFields.forEach(field => {
+      touchedState[field] = isTouched;
+    });
+    setTouched(touchedState);
+  }, [schema]);
+
   const clearErrors = useCallback(() => {
+    setErrors({});
+  }, []);
+
+  const clearFieldError = useCallback((field) => {
+    setErrors(prev => ({ ...prev, [field]: null }));
+  }, []);
+
+  const hasError = useCallback((field) => {
+    return errors[field] && touched[field];
+  }, [errors, touched]);
+
+  const hasAnyError = useCallback(() => {
+    return Object.keys(errors).some(field => errors[field]);
+  }, [errors]);
+
+  const getFieldError = useCallback((field) => {
+    return hasError(field) ? errors[field] : null;
+  }, [errors, touched]);
+
+  const reset = useCallback(() => {
     setErrors({});
     setTouched({});
   }, []);
-
-  // Verificar se campo tem erro e foi tocado
-  const hasError = useCallback((fieldName) => {
-    return touched[fieldName] && errors[fieldName];
-  }, [touched, errors]);
 
   return {
     errors,
@@ -54,7 +76,14 @@ export const useValidation = (schema) => {
     validateField,
     validateAll,
     setFieldTouched,
+    setAllTouched,
     clearErrors,
-    hasError
+    clearFieldError,
+    hasError,
+    hasAnyError,
+    getFieldError,
+    reset
   };
 };
+
+export default useValidation;

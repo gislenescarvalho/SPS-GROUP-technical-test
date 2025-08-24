@@ -1,6 +1,5 @@
 const Joi = require('joi');
 
-// Schema para login
 const loginSchema = Joi.object({
   email: Joi.string()
     .email({ tlds: { allow: false } })
@@ -20,7 +19,6 @@ const loginSchema = Joi.object({
     })
 });
 
-// Schema para refresh token
 const refreshTokenSchema = Joi.object({
   refreshToken: Joi.string()
     .required()
@@ -30,7 +28,6 @@ const refreshTokenSchema = Joi.object({
     })
 });
 
-// Schema para criação de usuário
 const createUserSchema = Joi.object({
   name: Joi.string()
     .min(2)
@@ -72,7 +69,6 @@ const createUserSchema = Joi.object({
     })
 });
 
-// Schema para atualização de usuário
 const updateUserSchema = Joi.object({
   name: Joi.string()
     .min(2)
@@ -112,7 +108,6 @@ const updateUserSchema = Joi.object({
   'object.min': 'Pelo menos um campo deve ser fornecido para atualização'
 });
 
-// Schema para ID de usuário
 const userIdSchema = Joi.object({
   id: Joi.number()
     .integer()
@@ -126,7 +121,6 @@ const userIdSchema = Joi.object({
     })
 });
 
-// Schema para paginação
 const paginationSchema = Joi.object({
   page: Joi.number()
     .integer()
@@ -150,7 +144,6 @@ const paginationSchema = Joi.object({
     })
 });
 
-// Schema para filtros de busca
 const searchSchema = Joi.object({
   name: Joi.string()
     .min(1)
@@ -201,22 +194,6 @@ const searchSchema = Joi.object({
     })
 });
 
-// Schema para ordenação
-const sortSchema = Joi.object({
-  field: Joi.string()
-    .valid('name', 'email', 'type', 'createdAt')
-    .default('name')
-    .messages({
-      'any.only': 'Campo de ordenação deve ser: name, email, type ou createdAt'
-    }),
-  order: Joi.string()
-    .valid('asc', 'desc')
-    .default('asc')
-    .messages({
-      'any.only': 'Ordem deve ser "asc" ou "desc"'
-    })
-});
-
 module.exports = {
   loginSchema,
   refreshTokenSchema,
@@ -224,6 +201,5 @@ module.exports = {
   updateUserSchema,
   userIdSchema,
   paginationSchema,
-  searchSchema,
-  sortSchema
+  searchSchema
 };

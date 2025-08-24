@@ -1,7 +1,6 @@
 const jwt = require('jsonwebtoken');
 const config = require('../config');
 
-// Middleware para verificar token JWT
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   
@@ -13,7 +12,6 @@ const authenticateToken = (req, res, next) => {
     });
   }
 
-  // Extrair token do header Authorization, lidando com espaços extras
   const parts = authHeader.trim().split(/\s+/).filter(part => part.length > 0);
   if (parts.length !== 2 || parts[0].toLowerCase() !== 'bearer') {
     return res.status(401).json({ 
@@ -38,7 +36,6 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
-// Gerar token JWT
 const generateToken = (user) => {
   return jwt.sign(
     { 

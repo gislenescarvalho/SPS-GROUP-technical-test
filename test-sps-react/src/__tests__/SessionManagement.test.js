@@ -8,14 +8,12 @@ import useSession from '../hooks/useSession';
 import { securityUtils } from '../config/security';
 import { isTokenNearExpiry, getTokenTimeRemaining } from '../services/httpInterceptor';
 
-// Mock das dependências
 jest.mock('../config/security');
 jest.mock('../services/httpInterceptor');
 jest.mock('../middleware/security', () => ({
   logSecurityEvent: jest.fn()
 }));
 
-// Mock do AuthService
 jest.mock('../services/AuthService', () => ({
   login: jest.fn(),
   logout: jest.fn(),
@@ -26,7 +24,6 @@ jest.mock('../services/AuthService', () => ({
   getToken: jest.fn(() => 'mock-token'),
 }));
 
-// Mock do localStorage
 const localStorageMock = {
   getItem: jest.fn(),
   setItem: jest.fn(),
@@ -37,10 +34,8 @@ Object.defineProperty(window, 'localStorage', {
   value: localStorageMock
 });
 
-// Mock do useSession
 jest.mock('../hooks/useSession');
 
-// Wrapper para renderizar com providers
 const renderWithProviders = (component) => {
   return render(
     <BrowserRouter>
@@ -57,13 +52,11 @@ describe('Gerenciamento de Sessão', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     
-    // Mock padrão das funções - token válido
     securityUtils.isTokenExpired.mockReturnValue(false);
-    securityUtils.getTokenTimeRemaining.mockReturnValue(3600000); // 1 hora
+    securityUtils.getTokenTimeRemaining.mockReturnValue(3600000);
     isTokenNearExpiry.mockReturnValue(false);
     getTokenTimeRemaining.mockReturnValue(3600000);
     
-    // Mock do localStorage para retornar dados válidos
     localStorageMock.getItem.mockImplementation((key) => {
       if (key === 'token') return 'mock-token';
       if (key === 'user') return JSON.stringify({ id: 1, email: 'test@example.com' });
@@ -71,7 +64,6 @@ describe('Gerenciamento de Sessão', () => {
       return null;
     });
     
-    // Mock padrão do useSession
     useSession.mockReturnValue({
       sessionWarning: false,
       timeRemaining: 3600000,
@@ -87,7 +79,6 @@ describe('Gerenciamento de Sessão', () => {
       isRefreshing: false
     });
     
-    // Mock do Date.now
     jest.spyOn(Date, 'now').mockReturnValue(1000000000000);
   });
 
@@ -124,8 +115,7 @@ describe('Gerenciamento de Sessão', () => {
     });
 
     test('deve mostrar aviso quando token está próximo da expiração', async () => {
-      // Configurar token próximo da expiração
-      getTokenTimeRemaining.mockReturnValue(300000); // 5 minutos
+      getTokenTimeRemaining.mockReturnValue(300000);
       isTokenNearExpiry.mockReturnValue(true);
       securityUtils.isTokenExpired.mockReturnValue(false);
       
@@ -152,8 +142,7 @@ describe('Gerenciamento de Sessão', () => {
     });
 
     test('deve permitir renovar sessão', async () => {
-      // Configurar token próximo da expiração mas não expirado
-      getTokenTimeRemaining.mockReturnValue(300000); // 5 minutos
+      getTokenTimeRemaining.mockReturnValue(300000);
       isTokenNearExpiry.mockReturnValue(true);
       securityUtils.isTokenExpired.mockReturnValue(false);
       
@@ -236,8 +225,7 @@ describe('Gerenciamento de Sessão', () => {
       const mockRefreshToken = jest.fn().mockRejectedValue(new Error('Erro de rede'));
       jest.spyOn(require('../services/AuthService'), 'refreshToken').mockImplementation(mockRefreshToken);
 
-      // Configurar token próximo da expiração
-      getTokenTimeRemaining.mockReturnValue(300000); // 5 minutos
+      getTokenTimeRemaining.mockReturnValue(300000);
       isTokenNearExpiry.mockReturnValue(true);
       securityUtils.isTokenExpired.mockReturnValue(false);
       
@@ -275,8 +263,7 @@ describe('Gerenciamento de Sessão', () => {
       
       jest.spyOn(require('../services/AuthService'), 'refreshToken').mockImplementation(mockRefreshToken);
 
-      // Configurar token próximo da expiração
-      getTokenTimeRemaining.mockReturnValue(300000); // 5 minutos
+      getTokenTimeRemaining.mockReturnValue(300000);
       isTokenNearExpiry.mockReturnValue(true);
       securityUtils.isTokenExpired.mockReturnValue(false);
       
@@ -302,7 +289,6 @@ describe('Gerenciamento de Sessão', () => {
         fireEvent.click(renewButton);
       });
 
-      // Verificar se houve tentativa de retry
       await waitFor(() => {
         expect(mockRefreshToken).toHaveBeenCalled();
       });
@@ -338,7 +324,6 @@ describe('Gerenciamento de Sessão', () => {
     });
 
     test('deve limpar cookies no logout', async () => {
-      // Mock de document.cookie
       Object.defineProperty(document, 'cookie', {
         writable: true,
         value: 'session=abc123; auth=xyz789'
@@ -413,7 +398,6 @@ describe('Gerenciamento de Sessão', () => {
 
       renderWithProviders(<SessionWarning />);
 
-      // Verificar se a atividade foi registrada
       expect(Date.now()).toBe(1000000000000);
     });
   });
@@ -445,7 +429,7 @@ describe('Gerenciamento de Sessão', () => {
     test('deve desabilitar botões durante refresh', async () => {
       useSession.mockReturnValue({
         sessionWarning: true,
-        timeRemaining: 300000, // 5 minutos
+        timeRemaining: 300000,
         isInactive: false,
         isSessionActive: true,
         renewSession: jest.fn(),

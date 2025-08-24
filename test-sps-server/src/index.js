@@ -12,30 +12,24 @@ const {
   removeSensitiveHeaders 
 } = require("./middleware/security");
 const { metricsMiddleware, cacheMetricsMiddleware } = require("./middleware/metrics");
-const { cacheMiddleware } = require("./middleware/cache");
 const redisService = require("./services/redisService");
 
 const app = express();
 
-// Desabilitar header X-Powered-By para segurança
 app.disable('x-powered-by');
 
-// Middlewares de segurança (devem vir primeiro)
 app.use(helmet(helmetConfig));
 app.use(cors(corsOptions));
 app.use(removeSensitiveHeaders);
 app.use(rateLimit);
 
-// Middlewares de parsing e logging
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(logger);
 
-// Middleware de métricas
 app.use(metricsMiddleware);
 app.use(cacheMetricsMiddleware);
 
-// Middleware para capturar erros de CORS
 app.use((err, req, res, next) => {
   if (err.message === 'Não permitido pelo CORS') {
     return res.status(403).json({
@@ -47,13 +41,10 @@ app.use((err, req, res, next) => {
   next(err);
 });
 
-// Rotas com prefixo da API
 app.use('/api', routes);
 
-// Middleware de tratamento de erros (deve ser o último)
 app.use(errorHandler);
 
-// Middleware para rotas não encontradas
 app.use('*', (req, res) => {
   res.status(404).json({
     error: 'Endpoint não encontrado',
@@ -62,10 +53,8 @@ app.use('*', (req, res) => {
   });
 });
 
-// Inicializar Redis e iniciar servidor
 async function startServer() {
   try {
-    // Conectar ao Redis
     await redisService.connect();
     
     app.listen(config.server.port, () => {

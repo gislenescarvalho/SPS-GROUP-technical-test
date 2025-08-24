@@ -1,7 +1,6 @@
 import MetricsService from '../../services/MetricsService';
 import MetricsRepository from '../../repositories/MetricsRepository';
 
-// Mock do repositório
 jest.mock('../../repositories/MetricsRepository');
 
 describe('MetricsService', () => {
@@ -109,7 +108,7 @@ describe('MetricsService', () => {
 
     test('deve validar período inválido', async () => {
       const startDate = '2024-02-01';
-      const endDate = '2024-01-01'; // Data inicial maior que final
+      const endDate = '2024-01-01';
 
       await expect(MetricsService.getMetricsByPeriod(startDate, endDate)).rejects.toThrow('Data inicial não pode ser maior que a data final');
       expect(MetricsRepository.getMetricsByPeriod).not.toHaveBeenCalled();

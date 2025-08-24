@@ -1,179 +1,210 @@
 # SPS Group - Teste de Desenvolvimento
 
-Este repositório contém dois projetos: um servidor backend em Node.js e um frontend em React.
+Sistema completo de gerenciamento de usuários com backend Node.js/Express e frontend React, incluindo autenticação JWT e recursos de acessibilidade.
 
 ## 📁 Estrutura do Projeto
 
 ```
-solution-testes-coder/
+SPS-GROUP-technical-test/
 ├── test-sps-server/     # Backend em Node.js/Express
 └── test-sps-react/      # Frontend em React
 ```
 
-## 🚀 Como Executar o Projeto
+## 🚀 Execução Rápida
 
 ### Pré-requisitos
-
-- **Node.js** (versão 16 ou superior)
+- **Node.js** (versão 16+)
 - **npm** ou **yarn**
-- **Redis** (opcional, para cache)
+- **Git** (para clonar o repositório)
+- **Navegador moderno** (Chrome, Firefox, Safari, Edge)
+- **Redis** (opcional - para cache avançado)
 
-### 1. Configuração do Backend (test-sps-server)
+## 🤖 Scripts de Automação
 
-#### Instalação das dependências:
-```bash
-cd test-sps-server
-npm install
+**⚠️ Recomendado:** Use os scripts de automação para uma experiência mais simples e rápida!
+
+### Scripts de Inicialização
+
+#### Windows (PowerShell) - Recomendado
+```powershell
+.\start-dev.ps1
 ```
 
-#### Configuração do ambiente:
+#### Cross-Platform (JavaScript)
 ```bash
-# Copie o arquivo de exemplo
-cp env.example .env
-
-# Edite o arquivo .env com suas configurações
-# As configurações padrão já estão adequadas para desenvolvimento
+node start-dev.js
 ```
 
-#### Executar o servidor:
-```bash
-# Modo desenvolvimento (com hot reload)
-npm run dev
-
-# Modo produção
-npm start
+#### Windows (Batch)
+```cmd
+start-dev.bat
 ```
 
-O servidor estará disponível em: `http://localhost:3000`
+### Scripts de Parada
 
-#### Comandos disponíveis:
-- `npm run dev` - Executa em modo desenvolvimento com nodemon
-- `npm start` - Executa em modo produção
-- `npm test` - Executa os testes unitários
-- `npm run test:watch` - Executa os testes em modo watch
-- `npm run test:coverage` - Executa os testes com cobertura
-- `npm run test:integration` - Executa apenas os testes de integração
-
-### 2. Configuração do Frontend (test-sps-react)
-
-#### Instalação das dependências:
+#### Cross-Platform (JavaScript) - Recomendado
 ```bash
-cd test-sps-react
-npm install
+node stop-dev.js
 ```
 
-#### Configuração do ambiente:
-```bash
-# Copie o arquivo de exemplo
-cp env.development.example .env.development
-
-# Edite o arquivo .env.development se necessário
-# Por padrão, aponta para http://localhost:3000 (backend)
+#### Windows (PowerShell)
+```powershell
+.\stop-dev.ps1
 ```
 
-#### Executar o frontend:
-```bash
-# Modo desenvolvimento
-npm start
-# ou
-npm run dev
+#### Windows (Batch)
+```cmd
+stop-dev.bat
 ```
 
-O frontend estará disponível em: `http://localhost:3001`
+### O que os Scripts Fazem
+- ✅ **Verificação automática** de pré-requisitos (Node.js, npm/yarn)
+- ✅ **Configuração automática** de arquivos de ambiente (.env)
+- ✅ **Instalação automática** de dependências (backend + frontend)
+- ✅ **Inicialização simultânea** dos serviços
+- ✅ **Interface amigável** com logs coloridos
+- ✅ **Tratamento de erros** robusto
 
-#### Comandos disponíveis:
-- `npm start` - Executa em modo desenvolvimento
-- `npm run dev` - Alias para npm start
-- `npm run build` - Gera build de produção
-- `npm test` - Executa os testes
-- `npm run test:watch` - Executa os testes em modo watch
-- `npm run test:coverage` - Executa os testes com cobertura
-- `npm run test:integration` - Executa testes de integração
-
-## 🔧 Configuração Completa
-
-### Passo a passo completo:
-
-1. **Clone o repositório** (se ainda não fez):
+### Opções dos Scripts
 ```bash
-git clone <url-do-repositorio>
-cd solution-testes-coder
+# Apenas instalar dependências
+node start-dev.js --install-only
+
+# Pular instalação (após primeira execução)
+node start-dev.js --skip-install
+
+# Exibir ajuda
+node start-dev.js --help
 ```
 
-2. **Configure o backend**:
+**📖 Documentação completa:** [SCRIPTS_README.md](./SCRIPTS_README.md)
+
+---
+
+### Execução Manual (Alternativa)
+
+### 1. Backend (test-sps-server)
 ```bash
 cd test-sps-server
 npm install
 cp env.example .env
 npm run dev
 ```
+**Servidor:** http://localhost:3000
 
-3. **Em outro terminal, configure o frontend**:
+### 2. Frontend (test-sps-react)
 ```bash
 cd test-sps-react
 npm install
 cp env.development.example .env.development
 npm start
 ```
+**Aplicação:** http://localhost:3001
 
-4. **Acesse a aplicação**:
-- Frontend: http://localhost:3001
-- Backend API: http://localhost:3000
-- Documentação da API: http://localhost:3000/api-docs
+## 🔐 Acesso
 
-## 📚 Documentação Adicional
+**⚠️ Dados de Demonstração:** Este é um projeto de teste com dados mockados.
 
-### Backend (test-sps-server)
-- [Documentação da API](./test-sps-server/API_DOCUMENTATION.md)
-- [Avaliação Senior Dev](./test-sps-server/AVALIACAO_SENIOR_DEV.md)
-- [Melhorias Implementadas](./test-sps-server/MELHORIAS_IMPLEMENTADAS.md)
+```json
+{
+  "email": "admin@spsgroup.com.br",
+  "password": "1234"
+}
+```
 
-### Frontend (test-sps-react)
-- [Clean Architecture](./test-sps-react/CLEAN_ARCHITECTURE_README.md)
-- [Testes](./test-sps-react/TESTING_README.md)
-- [Validações](./test-sps-react/VALIDATION_README.md)
-- [Segurança](./test-sps-react/SECURITY_README.md)
+**Nota:** Os dados são simulados e serão perdidos ao reiniciar o servidor.
 
-## 🛠️ Tecnologias Utilizadas
+## 🛠️ Tecnologias
 
 ### Backend
-- Node.js + Express
-- JWT para autenticação
-- Redis para cache
-- Joi para validação
-- Jest para testes
-- Swagger para documentação
+- **Node.js + Express** - Framework web
+- **JWT** - Autenticação
+- **Joi** - Validação
+- **Jest** - Testes
+- **Swagger** - Documentação da API
 
 ### Frontend
-- React 18
-- React Router DOM
-- Axios para requisições HTTP
-- Yup para validação
-- Jest + Testing Library para testes
+- **React 18** - Interface
+- **React Router** - Navegação
+- **Axios** - HTTP Client
+- **Context API** - Estado
+- **Jest + Testing Library** - Testes
 
-## 🔍 Troubleshooting
+## 🎯 Funcionalidades
 
-### Problemas comuns:
+### Backend
+- ✅ Autenticação JWT
+- ✅ CRUD de usuários
+- ✅ Validação de dados
+- ✅ Middleware de segurança
+- ✅ Cache com Redis/Node-Cache
+- ✅ Documentação Swagger
+- ✅ Testes unitários e integração
 
-1. **Porta 3000 já em uso**:
-   - Altere a porta no arquivo `.env` do backend
-   - Atualize a URL no `.env.development` do frontend
+### Frontend
+- ✅ Interface responsiva e acessível
+- ✅ Autenticação JWT
+- ✅ CRUD de usuários
+- ✅ Painel de acessibilidade
+- ✅ Validação de formulários
+- ✅ Testes unitários
 
-2. **Erro de CORS**:
-   - Verifique se as origens estão configuradas no backend
-   - Confirme se o frontend está rodando na porta correta
+## 📚 Documentação
 
-3. **Dependências não encontradas**:
-   - Delete as pastas `node_modules` e `package-lock.json`
-   - Execute `npm install` novamente
+- **API Docs:** http://localhost:3000/api-docs
+- **Backend:** [README detalhado](./test-sps-server/readme.md)
+- **Frontend:** [README detalhado](./test-sps-react/README.md)
 
-4. **Redis não disponível**:
-   - O projeto funciona sem Redis, mas algumas funcionalidades de cache podem não estar disponíveis
-   - Para instalar Redis: https://redis.io/download
+## 🔧 Comandos Úteis
+
+### Scripts de Automação
+```bash
+# Iniciar todos os serviços
+node start-dev.js           # Cross-platform
+.\start-dev.ps1             # Windows PowerShell
+start-dev.bat               # Windows Batch
+
+# Parar todos os serviços
+node stop-dev.js            # Cross-platform
+.\stop-dev.ps1              # Windows PowerShell
+stop-dev.bat                # Windows Batch
+```
+
+### Backend
+```bash
+npm run dev          # Desenvolvimento
+npm start           # Produção
+npm test            # Testes
+npm run test:watch  # Testes em watch
+```
+
+### Frontend
+```bash
+npm start           # Desenvolvimento
+npm run build       # Build produção
+npm test            # Testes
+npm run test:watch  # Testes em watch
+```
+
+## ⚠️ Troubleshooting
+
+### Scripts de Automação
+- **Erro de permissão (Windows):** Execute PowerShell como administrador
+- **Node.js não encontrado:** Instale Node.js em https://nodejs.org/
+- **Porta ocupada:** Use `node stop-dev.js` para parar serviços anteriores
+- **Arquivo .env não criado:** Execute `node start-dev.js --install-only`
+
+### Geral
+- **Porta 3000 ocupada:** Altere no `.env` do backend
+- **CORS:** Verifique origens no backend
+- **Dependências:** Delete `node_modules` e `package-lock.json`, execute `npm install`
+- **Redis:** Opcional, projeto funciona sem ele
 
 ## 📝 Notas
 
-- O backend usa um banco de dados fake em memória para demonstração
-- Os dados são perdidos ao reiniciar o servidor
-- Para produção, configure um banco de dados real
-- O frontend está configurado para se conectar ao backend na porta 3000
+- **Banco de dados mockado:** Dados simulados em memória (perdidos ao reiniciar)
+- **Acesso simulado:** Credenciais fixas para demonstração
+- **Configurado para desenvolvimento local**
+- **Inclui recursos completos de acessibilidade**
+- **Cobertura de testes para frontend e backend**
+- **Projeto de teste:** Não recomendado para produção sem adaptações

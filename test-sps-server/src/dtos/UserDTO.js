@@ -1,6 +1,4 @@
-// Data Transfer Objects para Usuários
 class UserDTO {
-  // Converte usuário para resposta da API (sem senha)
   static toResponse(user) {
     if (!user) return null;
     
@@ -11,22 +9,19 @@ class UserDTO {
     };
   }
 
-  // Converte lista de usuários para resposta da API
   static toResponseList(users) {
     return users.map(user => this.toResponse(user));
   }
 
-  // Converte dados de entrada para criação de usuário
   static toCreate(userData) {
     return {
       name: userData.name?.trim(),
       email: userData.email?.toLowerCase().trim(),
       type: userData.type,
-      password: userData.password // será hasheada no service
+      password: userData.password
     };
   }
 
-  // Converte dados de entrada para atualização de usuário
   static toUpdate(userData) {
     const updateData = {};
     
@@ -43,13 +38,12 @@ class UserDTO {
     }
     
     if (userData.password !== undefined) {
-      updateData.password = userData.password; // será hasheada no service
+      updateData.password = userData.password;
     }
     
     return updateData;
   }
 
-  // Converte dados para resposta de paginação
   static toPaginatedResponse(users, pagination) {
     return {
       data: this.toResponseList(users),
@@ -64,14 +58,12 @@ class UserDTO {
     };
   }
 
-  // Valida se o usuário tem permissões de admin
   static isAdmin(user) {
     return user && user.type === 'admin';
   }
 
-  // Verifica se o usuário pode ser deletado
   static canBeDeleted(user) {
-    return user && user.id !== 1; // Não pode deletar o admin principal
+    return user && user.id !== 1;
   }
 }
 

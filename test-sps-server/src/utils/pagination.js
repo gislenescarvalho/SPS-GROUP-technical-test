@@ -7,7 +7,6 @@ class PaginationService {
     this.maxLimit = 100;
   }
 
-  // Gerar chave de cache para paginação
   generateCacheKey(baseKey, page, limit, filters = {}) {
     const filterString = Object.keys(filters).length > 0 
       ? `:${JSON.stringify(filters)}` 
@@ -15,7 +14,6 @@ class PaginationService {
     return `${baseKey}:page:${page}:limit:${limit}${filterString}`;
   }
 
-  // Validar e normalizar parâmetros de paginação
   validatePaginationParams(page, limit) {
     const validatedPage = Math.max(1, parseInt(page) || 1);
     const validatedLimit = Math.min(
@@ -30,7 +28,6 @@ class PaginationService {
     };
   }
 
-  // Paginar dados com cache otimizado
   async paginateWithCache(data, page, limit, options = {}) {
     const {
       cacheKey = 'data',
@@ -45,7 +42,6 @@ class PaginationService {
     const cacheKeyFull = this.generateCacheKey(cacheKey, validatedPage, validatedLimit, filters);
 
     try {
-      // Tentar buscar do cache se habilitado
       if (enableCache) {
         const cached = await redisService.get(cacheKeyFull);
         if (cached) {
@@ -56,20 +52,16 @@ class PaginationService {
 
       const startTime = Date.now();
 
-      // Aplicar filtros se fornecidos
       let filteredData = data;
       if (Object.keys(filters).length > 0) {
         filteredData = this.applyFilters(data, filters);
       }
 
-      // Calcular totais
       const total = filteredData.length;
       const totalPages = Math.ceil(total / validatedLimit);
 
-      // Aplicar paginação
       const paginatedData = filteredData.slice(offset, offset + validatedLimit);
 
-      // Construir resultado
       const result = {
         data: paginatedData,
         pagination: {
@@ -88,13 +80,11 @@ class PaginationService {
         }
       };
 
-      // Cachear resultado se habilitado
       if (enableCache) {
         await redisService.set(cacheKeyFull, result, ttl);
         await redisService.incrementMetric('pagination_cache_misses');
       }
 
-      // Registrar métricas de performance
       const duration = Date.now() - startTime;
       await redisService.incrementMetric('pagination_query_duration', duration);
       await redisService.incrementMetric('pagination_queries_total');
@@ -103,12 +93,10 @@ class PaginationService {
     } catch (error) {
       console.error('❌ Erro na paginação com cache:', error.message);
       
-      // Fallback para paginação simples
       return this.simplePaginate(data, validatedPage, validatedLimit);
     }
   }
 
-  // Paginação simples (fallback)
   simplePaginate(data, page, limit) {
     const { page: validatedPage, limit: validatedLimit, offset } = 
       this.validatePaginationParams(page, limit);
@@ -136,12 +124,10 @@ class PaginationService {
     };
   }
 
-  // Aplicar filtros aos dados
   applyFilters(data, filters) {
     return data.filter(item => {
       return Object.entries(filters).every(([key, value]) => {
         if (typeof value === 'string') {
-          // Busca case-insensitive
           return item[key] && 
                  item[key].toString().toLowerCase().includes(value.toLowerCase());
         }
@@ -156,7 +142,6 @@ class PaginationService {
     });
   }
 
-  // Invalidar cache de paginação
   async invalidatePaginationCache(baseKey, filters = {}) {
     try {
       const pattern = this.generateCacheKey(baseKey, '*', '*', filters);
@@ -167,7 +152,6 @@ class PaginationService {
     }
   }
 
-  // Obter estatísticas de paginação
   async getPaginationStats() {
     try {
       const today = new Date().toISOString().split('T')[0];
@@ -189,7 +173,6 @@ class PaginationService {
     }
   }
 
-  // Gerar links de paginação para API
   generatePaginationLinks(baseUrl, pagination, queryParams = {}) {
     const { page, totalPages, hasNext, hasPrev, nextPage, prevPage } = pagination;
     
@@ -210,7 +193,6 @@ class PaginationService {
     return links;
   }
 
-  // Construir URL com parâmetros
   buildUrl(baseUrl, page, queryParams) {
     const params = new URLSearchParams({
       page: page.toString(),
@@ -222,7 +204,6 @@ class PaginationService {
   }
 }
 
-// Singleton instance
 const paginationService = new PaginationService();
 
 module.exports = paginationService;

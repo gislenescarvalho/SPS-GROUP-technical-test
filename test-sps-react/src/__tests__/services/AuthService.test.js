@@ -3,7 +3,6 @@ import AuthRepository from '../../repositories/AuthRepository';
 import { setAuthToken, clearAuthToken } from '../../services/httpInterceptor';
 import { secureStorage, validateEmail, logSecurityEvent } from '../../middleware/security';
 
-// Mock das dependências
 jest.mock('../../repositories/AuthRepository');
 jest.mock('../../services/httpInterceptor');
 jest.mock('../../middleware/security');

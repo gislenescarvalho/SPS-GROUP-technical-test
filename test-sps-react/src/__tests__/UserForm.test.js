@@ -6,10 +6,8 @@ import { AccessibilityProvider } from '../contexts/AccessibilityContext';
 import Users from '../pages/Users';
 import UserService from '../services/UserService';
 
-// Mock do UserService
 jest.mock('../services/UserService');
 
-// Mock do AuthService
 jest.mock('../services/AuthService', () => ({
   login: jest.fn(),
   logout: jest.fn(),
@@ -18,7 +16,6 @@ jest.mock('../services/AuthService', () => ({
   setupAuthInterceptor: jest.fn(),
 }));
 
-// Mock do useNavigate
 const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
@@ -26,7 +23,6 @@ jest.mock('react-router-dom', () => ({
   Link: ({ children, to, ...props }) => <a href={to} {...props}>{children}</a>,
 }));
 
-// Wrapper para renderizar com providers necessários
 const renderWithProviders = (component) => {
   return render(
     <BrowserRouter>
@@ -44,7 +40,6 @@ describe('User Form Integration', () => {
     jest.clearAllMocks();
     mockNavigate.mockClear();
     
-    // Mock padrão do UserService
     UserService.list.mockResolvedValue([]);
     UserService.create.mockResolvedValue({ id: 1, name: 'Test User' });
   });

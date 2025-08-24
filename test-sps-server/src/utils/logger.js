@@ -1,6 +1,5 @@
 const config = require('../config');
 
-// Logger simples configurável
 class Logger {
   constructor() {
     this.silent = config.logging.silent;
@@ -55,7 +54,6 @@ class Logger {
     }
   }
 
-  // Método para logs de requisição
   request(req, res, responseTime) {
     if (this._shouldLog('info')) {
       const logData = {
@@ -71,7 +69,6 @@ class Logger {
     }
   }
 
-  // Método para logs de erro
   errorWithContext(error, req = null) {
     if (this._shouldLog('error')) {
       const logData = {

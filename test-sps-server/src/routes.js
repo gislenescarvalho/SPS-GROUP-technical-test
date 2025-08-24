@@ -9,28 +9,22 @@ const APIVersioning = require('./middleware/versioning');
 
 const routes = Router();
 
-// Middleware de versionamento global
 routes.use(APIVersioning.detectVersion);
 routes.use(APIVersioning.addVersionInfo);
 
-// Rotas de documentação (sem versionamento)
 routes.use('/docs', docsRoutes);
 
-// Rotas com versionamento
 routes.use('/auth', authRoutes);
 routes.use('/users', userRoutes);
 routes.use('/metrics', metricsRoutes);
 
-// Rotas V2 apenas (com verificação de feature)
 routes.use('/audit', 
   APIVersioning.requireFeature('audit_logs'),
   auditRoutes
 );
 
-// Rotas de versionamento
 routes.use('/version', versionRoutes);
 
-// Rota de health check
 routes.get('/health', (req, res) => {
   res.json({
     success: true,
@@ -40,7 +34,6 @@ routes.get('/health', (req, res) => {
   });
 });
 
-// Rota raiz com informações da API
 routes.get('/', (req, res) => {
   res.json({
     success: true,

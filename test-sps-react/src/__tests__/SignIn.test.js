@@ -5,7 +5,6 @@ import { AuthProvider } from '../contexts/AuthContext';
 import { AccessibilityProvider } from '../contexts/AccessibilityContext';
 import SignIn from '../pages/SignIn';
 
-// Mock do AuthService
 jest.mock('../services/AuthService', () => ({
   login: jest.fn(),
   logout: jest.fn(),
@@ -14,7 +13,6 @@ jest.mock('../services/AuthService', () => ({
   setupAuthInterceptor: jest.fn(),
 }));
 
-// Wrapper para renderizar com providers necessários
 const renderWithProviders = (component) => {
   return render(
     <BrowserRouter>
@@ -36,7 +34,6 @@ describe('SignIn Component', () => {
     test('deve renderizar o formulário de login corretamente', () => {
       renderWithProviders(<SignIn />);
       
-      // Verificar elementos principais
       expect(screen.getByText('Login')).toBeInTheDocument();
       expect(screen.getByPlaceholderText('admin@spsgroup.com.br')).toBeInTheDocument();
       expect(screen.getByPlaceholderText('1234')).toBeInTheDocument();

@@ -6,15 +6,12 @@ import { AccessibilityProvider } from '../contexts/AccessibilityContext';
 import SessionWarning from '../components/SessionWarning';
 import useSession from '../hooks/useSession';
 
-// Mock do hook useSession
 jest.mock('../hooks/useSession');
 
-// Mock do middleware de segurança
 jest.mock('../middleware/security', () => ({
   logSecurityEvent: jest.fn()
 }));
 
-// Mock do localStorage
 const localStorageMock = {
   getItem: jest.fn(),
   setItem: jest.fn(),
@@ -25,7 +22,6 @@ Object.defineProperty(window, 'localStorage', {
   value: localStorageMock
 });
 
-// Wrapper para renderizar com providers
 const renderWithProviders = (component) => {
   return render(
     <BrowserRouter>
@@ -42,7 +38,6 @@ describe('SessionWarning', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     
-    // Mock padrão do useSession
     useSession.mockReturnValue({
       sessionWarning: false,
       timeRemaining: null,
@@ -69,7 +64,7 @@ describe('SessionWarning', () => {
     test('deve renderizar aviso de sessão expirando', () => {
       useSession.mockReturnValue({
         sessionWarning: true,
-        timeRemaining: 300000, // 5 minutos
+        timeRemaining: 300000,
         isInactive: false,
         isSessionActive: true,
         renewSession: jest.fn(),
@@ -113,7 +108,7 @@ describe('SessionWarning', () => {
     test('deve renderizar aviso de sessão inativa', () => {
       useSession.mockReturnValue({
         sessionWarning: true,
-        timeRemaining: 3600000, // 1 hora
+        timeRemaining: 3600000,
         isInactive: true,
         isSessionActive: false,
         renewSession: jest.fn(),
@@ -267,7 +262,7 @@ describe('SessionWarning', () => {
     test('deve mostrar contador regressivo quando há tempo restante', () => {
       useSession.mockReturnValue({
         sessionWarning: true,
-        timeRemaining: 300000, // 5 minutos
+        timeRemaining: 300000,
         isInactive: false,
         isSessionActive: true,
         renewSession: jest.fn(),
@@ -282,7 +277,6 @@ describe('SessionWarning', () => {
 
       renderWithProviders(<SessionWarning />);
       
-      // O contador regressivo só aparece quando há tempo restante e o componente está ativo
       expect(screen.getByText('Sessão Expirando')).toBeInTheDocument();
     });
   });
@@ -335,7 +329,7 @@ describe('SessionWarning', () => {
     test('deve aplicar classe CSS correta para info', () => {
       useSession.mockReturnValue({
         sessionWarning: true,
-        timeRemaining: 600000, // 10 minutos
+        timeRemaining: 600000,
         isInactive: false,
         isSessionActive: true,
         renewSession: jest.fn(),

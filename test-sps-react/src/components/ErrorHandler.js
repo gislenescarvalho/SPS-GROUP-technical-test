@@ -1,238 +1,160 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { logSecurityEvent } from '../middleware/security';
 
-/**
- * Componente para exibir mensagens de erro de forma consistente
- */
-const ErrorHandler = ({ 
-  error, 
-  onRetry, 
-  onClose, 
-  showDetails = false,
-  variant = 'error' // 'error', 'warning', 'info'
-}) => {
+const ErrorHandler = ({ error, variant = 'error', onDismiss, showDetails = false }) => {
+  const [showFullDetails, setShowFullDetails] = useState(showDetails);
+
+  const handleDismiss = useCallback(() => {
+    if (onDismiss) {
+      onDismiss();
+    }
+  }, [onDismiss]);
+
+  const toggleDetails = useCallback(() => {
+    setShowFullDetails(prev => !prev);
+  }, []);
+
+  const logError = useCallback(() => {
+    if (error) {
+      logSecurityEvent('ui_error', {
+        message: error.message,
+        stack: error.stack,
+        variant,
+        timestamp: new Date().toISOString()
+      });
+    }
+  }, [error, variant]);
+
+  React.useEffect(() => {
+    logError();
+  }, [logError]);
+
   if (!error) return null;
 
-  const getErrorIcon = () => {
-    switch (variant) {
-      case 'warning':
-        return '⚠️';
-      case 'info':
-        return 'ℹ️';
-      case 'error':
-      default:
-        return '❌';
-    }
-  };
-
-  const getErrorStyle = () => {
-    const baseStyle = {
-      padding: 'var(--spacing-md)',
-      borderRadius: '4px',
-      marginBottom: 'var(--spacing-md)',
-      fontSize: 'var(--font-size-medium)',
-      display: 'flex',
-      alignItems: 'flex-start',
-      gap: 'var(--spacing-sm)',
-      border: '1px solid',
-      position: 'relative'
-    };
-
+  const getVariantStyles = () => {
     switch (variant) {
       case 'warning':
         return {
-          ...baseStyle,
-          backgroundColor: 'var(--warning-color)',
-          color: 'white',
-          borderColor: 'var(--warning-color)'
+          container: 'bg-yellow-50 border-yellow-200 text-yellow-800',
+          icon: 'text-yellow-400',
+          button: 'text-yellow-800 hover:bg-yellow-100'
         };
       case 'info':
         return {
-          ...baseStyle,
-          backgroundColor: 'var(--info-color)',
-          color: 'white',
-          borderColor: 'var(--info-color)'
+          container: 'bg-blue-50 border-blue-200 text-blue-800',
+          icon: 'text-blue-400',
+          button: 'text-blue-800 hover:bg-blue-100'
         };
-      case 'error':
       default:
         return {
-          ...baseStyle,
-          backgroundColor: 'var(--danger-color)',
-          color: 'white',
-          borderColor: 'var(--danger-color)'
+          container: 'bg-red-50 border-red-200 text-red-800',
+          icon: 'text-red-400',
+          button: 'text-red-800 hover:bg-red-100'
         };
     }
   };
 
-  const handleRetry = () => {
-    if (onRetry) {
-      logSecurityEvent('error_retry', { 
-        error: error.message,
-        url: window.location.href 
-      });
-      onRetry();
-    }
-  };
-
-  const handleClose = () => {
-    if (onClose) {
-      logSecurityEvent('error_dismissed', { 
-        error: error.message,
-        url: window.location.href 
-      });
-      onClose();
-    }
-  };
+  const styles = getVariantStyles();
 
   return (
-    <div style={getErrorStyle()} role="alert" aria-live="assertive">
-      <div style={{ fontSize: '20px', flexShrink: 0 }}>
-        {getErrorIcon()}
-      </div>
-      
-      <div style={{ flex: 1 }}>
-        <div style={{ 
-          fontWeight: 'bold', 
-          marginBottom: 'var(--spacing-xs)' 
-        }}>
-          {error.title || 'Erro'}
+    <div className={`border rounded-md p-4 ${styles.container}`}>
+      <div className="flex items-start">
+        <div className={`flex-shrink-0 ${styles.icon}`}>
+          {variant === 'warning' && (
+            <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+          )}
+          {variant === 'info' && (
+            <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+            </svg>
+          )}
+          {variant === 'error' && (
+            <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+          )}
         </div>
         
-        <div style={{ 
-          lineHeight: '1.4',
-          marginBottom: showDetails ? 'var(--spacing-sm)' : 0
-        }}>
-          {error.userMessage || error.message || 'Ocorreu um erro inesperado.'}
-        </div>
-        
-        {showDetails && error.details && (
-          <details style={{ 
-            marginTop: 'var(--spacing-sm)',
-            fontSize: 'var(--font-size-small)'
-          }}>
-            <summary style={{ 
-              cursor: 'pointer',
-              textDecoration: 'underline'
-            }}>
-              Detalhes técnicos
-            </summary>
-            <pre style={{
-              marginTop: 'var(--spacing-xs)',
-              whiteSpace: 'pre-wrap',
-              wordBreak: 'break-word',
-              fontSize: 'var(--font-size-small)',
-              opacity: 0.8
-            }}>
-              {JSON.stringify(error.details, null, 2)}
-            </pre>
-          </details>
-        )}
-        
-        {(onRetry || onClose) && (
-          <div style={{
-            display: 'flex',
-            gap: 'var(--spacing-sm)',
-            marginTop: 'var(--spacing-sm)',
-            flexWrap: 'wrap'
-          }}>
-            {onRetry && (
-              <button
-                onClick={handleRetry}
-                style={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                  color: 'white',
-                  border: '1px solid rgba(255, 255, 255, 0.3)',
-                  padding: 'var(--spacing-xs) var(--spacing-sm)',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontSize: 'var(--font-size-small)',
-                  transition: 'all 0.3s ease'
-                }}
-                aria-label="Tentar novamente"
-              >
-                🔄 Tentar Novamente
-              </button>
-            )}
+        <div className="ml-3 flex-1">
+          <h3 className="text-sm font-medium">
+            {variant === 'warning' && 'Aviso'}
+            {variant === 'info' && 'Informação'}
+            {variant === 'error' && 'Erro'}
+          </h3>
+          
+          <div className="mt-2 text-sm">
+            <p>{error.message || 'Ocorreu um erro inesperado.'}</p>
             
-            {onClose && (
+            {showFullDetails && error.stack && (
+              <details className="mt-3">
+                <summary className="cursor-pointer font-medium">Detalhes técnicos</summary>
+                <pre className="mt-2 text-xs bg-gray-100 p-2 rounded overflow-auto max-h-32">
+                  {error.stack}
+                </pre>
+              </details>
+            )}
+          </div>
+        </div>
+        
+        <div className="ml-auto pl-3">
+          <div className="-mx-1.5 -my-1.5">
+            {onDismiss && (
               <button
-                onClick={handleClose}
-                style={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                  color: 'white',
-                  border: '1px solid rgba(255, 255, 255, 0.3)',
-                  padding: 'var(--spacing-xs) var(--spacing-sm)',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontSize: 'var(--font-size-small)',
-                  transition: 'all 0.3s ease'
-                }}
-                aria-label="Fechar mensagem de erro"
+                onClick={handleDismiss}
+                className={`inline-flex rounded-md p-1.5 ${styles.button} focus:outline-none focus:ring-2 focus:ring-offset-2`}
               >
-                ✕ Fechar
+                <span className="sr-only">Fechar</span>
+                <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
               </button>
             )}
           </div>
-        )}
+        </div>
       </div>
+      
+      {!showFullDetails && error.stack && (
+        <div className="mt-3">
+          <button
+            onClick={toggleDetails}
+            className={`text-sm ${styles.button} underline`}
+          >
+            {showFullDetails ? 'Ocultar detalhes' : 'Mostrar detalhes'}
+          </button>
+        </div>
+      )}
     </div>
   );
 };
 
-/**
- * Hook para gerenciar erros de forma consistente
- */
 export const useErrorHandler = () => {
-  const [errors, setErrors] = React.useState([]);
+  const [errors, setErrors] = useState([]);
 
-  const addError = (error) => {
-    const errorId = Date.now().toString();
-    const errorWithId = {
-      ...error,
-      id: errorId,
-      timestamp: new Date().toISOString()
-    };
-    
-    setErrors(prev => [...prev, errorWithId]);
-    
-    // Log do erro
-    logSecurityEvent('error_added', {
-      error: error.message,
-      userMessage: error.userMessage,
-      url: window.location.href
-    });
-    
-    return errorId;
-  };
+  const addError = useCallback((error) => {
+    const id = Date.now() + Math.random();
+    setErrors(prev => [...prev, { id, error, timestamp: new Date() }]);
+  }, []);
 
-  const removeError = (errorId) => {
-    setErrors(prev => prev.filter(error => error.id !== errorId));
-  };
+  const removeError = useCallback((id) => {
+    setErrors(prev => prev.filter(err => err.id !== id));
+  }, []);
 
-  const clearErrors = () => {
+  const clearErrors = useCallback(() => {
     setErrors([]);
-  };
+  }, []);
 
-  const ErrorList = ({ variant = 'error', showDetails = false }) => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-sm)' }}>
-      {errors.map(error => (
-        <ErrorHandler
-          key={error.id}
-          error={error}
-          variant={variant}
-          showDetails={showDetails}
-          onClose={() => removeError(error.id)}
-        />
-      ))}
-    </div>
-  );
+  const getErrors = useCallback(() => {
+    return errors;
+  }, [errors]);
 
   return {
     errors,
     addError,
     removeError,
     clearErrors,
-    ErrorList
+    getErrors
   };
 };
 

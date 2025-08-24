@@ -1,7 +1,6 @@
 const metricsService = require('../services/metricsService');
 const config = require('../config');
 
-// Middleware de métricas de performance
 const metricsMiddleware = async (req, res, next) => {
   if (!config.metrics.enabled) {
     return next();
@@ -11,12 +10,10 @@ const metricsMiddleware = async (req, res, next) => {
   const originalSend = res.send;
   const originalJson = res.json;
 
-  // Interceptar resposta para capturar status code
   res.send = function(data) {
     const duration = Date.now() - startTime;
     const statusCode = res.statusCode;
     
-    // Registrar métricas em background
     metricsService.recordRequest(req.method, req.path, statusCode, duration)
       .catch(err => console.error('❌ Erro ao registrar métricas:', err.message));
     
@@ -27,7 +24,6 @@ const metricsMiddleware = async (req, res, next) => {
     const duration = Date.now() - startTime;
     const statusCode = res.statusCode;
     
-    // Registrar métricas em background
     metricsService.recordRequest(req.method, req.path, statusCode, duration)
       .catch(err => console.error('❌ Erro ao registrar métricas:', err.message));
     
@@ -37,7 +33,6 @@ const metricsMiddleware = async (req, res, next) => {
   next();
 };
 
-// Middleware para cache metrics
 const cacheMetricsMiddleware = async (req, res, next) => {
   if (!config.metrics.enabled) {
     return next();
@@ -46,7 +41,6 @@ const cacheMetricsMiddleware = async (req, res, next) => {
   const originalJson = res.json;
 
   res.json = function(data) {
-    // Verificar se veio do cache
     const cacheStatus = res.getHeader('X-Cache');
     
     if (cacheStatus === 'HIT') {

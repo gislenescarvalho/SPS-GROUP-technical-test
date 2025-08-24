@@ -11,10 +11,20 @@ function AccessibilityPanel() {
     toggleTheme,
     increaseFontSize,
     decreaseFontSize,
-    resetFontSize,
     toggleHighContrast,
     toggleReducedMotion,
   } = useAccessibility();
+
+  const resetFontSize = () => {
+    // Reset para tamanho médio
+    const sizes = ['small', 'medium', 'large', 'xlarge'];
+    const currentIndex = sizes.indexOf(fontSize);
+    if (currentIndex !== 1) { // Se não estiver no médio
+      // Forçar reset para médio
+      const event = new CustomEvent('resetFontSize');
+      window.dispatchEvent(event);
+    }
+  };
 
   const togglePanel = () => {
     setIsOpen(!isOpen);

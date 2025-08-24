@@ -1,14 +1,11 @@
 const userService = require('../services/userService');
-const auditService = require('../services/auditService');
 
 class UserController {
-  // Listar todos os usuários
   async getAllUsers(req, res, next) {
     try {
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 10;
       
-      // Extrair filtros da query string
       const filters = {};
       if (req.query.name) filters.name = req.query.name;
       if (req.query.email) filters.email = req.query.email;
@@ -21,10 +18,9 @@ class UserController {
     }
   }
 
-  // Buscar usuário por ID
   async getUserById(req, res, next) {
     try {
-      const { id } = req.params; // ID já validado pelo middleware
+      const { id } = req.params;
       const user = await userService.getUserById(id);
       res.json(user);
     } catch (error) {
@@ -32,12 +28,10 @@ class UserController {
     }
   }
 
-  // Criar novo usuário
   async createUser(req, res, next) {
     try {
-      const { name, email, type, password } = req.body; // Dados já validados pelo Joi
+      const { name, email, type, password } = req.body;
       
-      // Contexto de auditoria
       const auditContext = {
         userId: req.user?.id,
         userEmail: req.user?.email,
@@ -53,13 +47,11 @@ class UserController {
     }
   }
 
-  // Atualizar usuário
   async updateUser(req, res, next) {
     try {
-      const { id } = req.params; // ID já validado pelo middleware
-      const updateData = req.body; // Dados já validados pelo Joi
+      const { id } = req.params;
+      const updateData = req.body;
 
-      // Contexto de auditoria
       const auditContext = {
         userId: req.user?.id,
         userEmail: req.user?.email,
@@ -74,12 +66,10 @@ class UserController {
     }
   }
 
-  // Deletar usuário
   async deleteUser(req, res, next) {
     try {
-      const { id } = req.params; // ID já validado pelo middleware
+      const { id } = req.params;
       
-      // Contexto de auditoria
       const auditContext = {
         userId: req.user?.id,
         userEmail: req.user?.email,

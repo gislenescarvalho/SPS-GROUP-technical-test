@@ -2,7 +2,6 @@ import UserRepository from '../../repositories/UserRepository';
 import api from '../../services/httpInterceptor';
 import config from '../../config/api';
 
-// Mock das dependências
 jest.mock('../../services/httpInterceptor');
 jest.mock('../../config/api');
 
@@ -10,7 +9,6 @@ describe('UserRepository', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     
-    // Mock da configuração
     config.baseURL = 'http://localhost:3001';
     config.pagination = {
       defaultPage: 1,
@@ -188,7 +186,6 @@ describe('UserRepository', () => {
         { id: 2, email: 'outro@test.com' }
       ];
 
-      // Mock do método findAll
       UserRepository.findAll = jest.fn().mockResolvedValue(mockUsers);
 
       const result = await UserRepository.checkEmailExists(email, excludeUserId);
@@ -210,7 +207,7 @@ describe('UserRepository', () => {
 
       const result = await UserRepository.checkEmailExists(email, excludeUserId);
 
-      expect(result).toBe(false); // Não deve encontrar porque exclui o ID 1
+      expect(result).toBe(false);
     });
 
     test('deve retornar false quando há erro', async () => {

@@ -1,290 +1,304 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
-import AuthService from "../services/AuthService";
-import { securityUtils } from "../config/security";
-import { logSecurityEvent } from "../middleware/security";
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import AuthService from '../services/AuthService';
+import { logSecurityEvent } from '../middleware/security';
+import { isTokenNearExpiry, getTokenTimeRemaining } from '../services/httpInterceptor';
 
 const AuthContext = createContext();
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error("useAuth deve ser usado dentro de um AuthProvider");
+    throw new Error('useAuth deve ser usado dentro de um AuthProvider');
   }
   return context;
 };
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [tokenExpiry, setTokenExpiry] = useState(null);
-  const [lastActivity, setLastActivity] = useState(Date.now());
+  const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshError, setRefreshError] = useState(null);
+  const [lastActivity, setLastActivity] = useState(Date.now());
+  const refreshTimeoutRef = useRef(null);
+  const activityTimeoutRef = useRef(null);
 
-  // Verificar se o token está expirado
+  const refreshThreshold = 5 * 60 * 1000;
+  const sessionTimeout = 30 * 60 * 1000;
+
   const checkTokenExpiry = useCallback(() => {
-    const token = AuthService.getToken();
-    if (!token) return false;
+    if (!user) return;
 
-    const isExpired = securityUtils.isTokenExpired(token);
-    const timeRemaining = securityUtils.getTokenTimeRemaining(token);
-    
-    if (isExpired) {
-      logSecurityEvent('token_expired', { 
-        userId: user?.id,
-        userEmail: user?.email 
-      });
-      return true;
-    }
-
-    // Atualizar tempo de expiração
-    setTokenExpiry(timeRemaining);
-    return false;
-  }, [user]);
-
-  // Renovar token automaticamente com retry
-  const refreshTokenIfNeeded = useCallback(async (retryCount = 0) => {
-    const token = AuthService.getToken();
-    if (!token || isRefreshing) return;
-
-    const timeRemaining = securityUtils.getTokenTimeRemaining(token);
-    const refreshThreshold = 5 * 60 * 1000; // 5 minutos antes da expiração
-
-    if (timeRemaining > 0 && timeRemaining < refreshThreshold) {
-      try {
-        setIsRefreshing(true);
-        setRefreshError(null);
-        
-        logSecurityEvent('token_refresh_attempt', { 
-          userId: user?.id,
-          timeRemaining,
-          retryCount 
+    try {
+      const remaining = getTokenTimeRemaining();
+      
+      if (remaining <= 0) {
+        logSecurityEvent('token_expired', { 
+          userId: user.id,
+          userEmail: user.email 
         });
-
-        const { token: newToken, refreshToken: newRefreshToken } = await AuthService.refreshToken();
-        
-        // Validar novo token
-        if (securityUtils.isTokenExpired(newToken)) {
-          throw new Error('Novo token já está expirado');
-        }
-        
-        // Atualizar estado do usuário se necessário
-        const currentUser = AuthService.getUser();
-        if (currentUser) {
-          setUser(currentUser);
-        }
-
-        logSecurityEvent('token_refresh_success', { 
-          userId: user?.id,
-          userEmail: user?.email 
-        });
-
-        return { token: newToken, refreshToken: newRefreshToken };
-      } catch (error) {
-        setRefreshError(error.message);
-        
-        logSecurityEvent('token_refresh_failed', { 
-          userId: user?.id,
-          error: error.message,
-          retryCount 
-        });
-        
-        // Retry com backoff exponencial (máximo 3 tentativas)
-        if (retryCount < 3 && error.message.includes('network')) {
-          const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
-          setTimeout(() => {
-            refreshTokenIfNeeded(retryCount + 1);
-          }, delay);
-          return;
-        }
-        
-        // Se a renovação falhar definitivamente, fazer logout
-        await handleLogout();
-        return null;
-      } finally {
-        setIsRefreshing(false);
+        handleLogout();
+        return;
       }
+
+      if (remaining <= refreshThreshold && !isRefreshing) {
+        refreshTokenIfNeeded();
+      }
+    } catch (error) {
+      console.error('Erro ao verificar expiração do token:', error);
+      logSecurityEvent('token_check_error', { 
+        userId: user?.id,
+        error: error.message 
+      });
     }
-  }, [user, isRefreshing]);
+  }, [user, isRefreshing, refreshThreshold]);
 
-  // Monitorar atividade do usuário
-  const updateActivity = useCallback(() => {
-    setLastActivity(Date.now());
-  }, []);
+  const refreshTokenIfNeeded = useCallback(async () => {
+    if (!user || isRefreshing) return;
 
-  // Verificar inatividade
-  const checkInactivity = useCallback(() => {
-    const sessionTimeout = 30 * 60 * 1000; // 30 minutos
-    const timeSinceLastActivity = Date.now() - lastActivity;
-    
-    if (timeSinceLastActivity > sessionTimeout && user) {
-      logSecurityEvent('session_timeout', { 
+    try {
+      setIsRefreshing(true);
+      setRefreshError(null);
+      
+      logSecurityEvent('token_refresh_attempt', { 
+        userId: user.id,
+        userEmail: user.email 
+      });
+
+      const newToken = await AuthService.refreshToken();
+      
+      if (newToken) {
+        const userData = JSON.parse(localStorage.getItem('user') || '{}');
+        setUser(userData);
+        
+        logSecurityEvent('token_refresh_success', { 
+          userId: user.id,
+          userEmail: user.email 
+        });
+      }
+    } catch (error) {
+      setRefreshError(error.message);
+      logSecurityEvent('token_refresh_failed', { 
         userId: user.id,
         userEmail: user.email,
-        timeSinceLastActivity 
+        error: error.message 
       });
       
       handleLogout();
-    }
-  }, [lastActivity, user]);
-
-  // Logout com limpeza completa e sincronização entre abas
-  const handleLogout = useCallback(async () => {
-    try {
-      // Notificar outras abas sobre o logout
-      window.dispatchEvent(new CustomEvent('auth:logout', {
-        detail: { userId: user?.id, timestamp: Date.now() }
-      }));
-      
-      await AuthService.logout();
-    } catch (error) {
-      console.error('Erro durante logout:', error);
     } finally {
-      // Limpeza completa do estado
-      setUser(null);
-      setTokenExpiry(null);
-      setLastActivity(Date.now());
-      setRefreshError(null);
       setIsRefreshing(false);
-      
-      // Limpar dados de sessão de forma mais abrangente
-      const keysToRemove = [
-        'token', 'refreshToken', 'user', 'auth_data', 'session_data',
-        'user_preferences', 'temp_data', 'cache_data'
-      ];
-      
-      keysToRemove.forEach(key => {
-        localStorage.removeItem(key);
-        sessionStorage.removeItem(key);
-      });
-      
-      // Limpar dados de cache se existir
-      if (window.caches) {
-        try {
-          const cacheNames = await caches.keys();
-          await Promise.all(cacheNames.map(name => caches.delete(name)));
-        } catch (error) {
-          console.error('Erro ao limpar cache:', error);
-        }
-      }
+    }
+  }, [user, isRefreshing]);
 
-      // Limpar dados de sessão do navegador
-      sessionStorage.clear();
-      
-      // Limpar cookies relacionados à autenticação
-      document.cookie.split(";").forEach(function(c) { 
-        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
-      });
-      
-      logSecurityEvent('logout_complete', { 
+  const updateActivity = useCallback(() => {
+    setLastActivity(Date.now());
+    
+    if (activityTimeoutRef.current) {
+      clearTimeout(activityTimeoutRef.current);
+    }
+    
+    activityTimeoutRef.current = setTimeout(() => {
+      logSecurityEvent('user_inactive', { 
         userId: user?.id,
         userEmail: user?.email 
       });
+    }, sessionTimeout);
+  }, [user, sessionTimeout]);
+
+  const checkInactivity = useCallback(() => {
+    const now = Date.now();
+    const timeSinceLastActivity = now - lastActivity;
+    
+    if (timeSinceLastActivity >= sessionTimeout) {
+      logSecurityEvent('session_timeout', { 
+        userId: user?.id,
+        userEmail: user?.email,
+        inactiveTime: timeSinceLastActivity 
+      });
+      handleLogout();
+    }
+  }, [lastActivity, sessionTimeout, user]);
+
+  const handleLogout = useCallback(() => {
+    try {
+      AuthService.logout();
+      setUser(null);
+      setRefreshError(null);
+      
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
+      if (activityTimeoutRef.current) {
+        clearTimeout(activityTimeoutRef.current);
+      }
+      
+      window.dispatchEvent(new CustomEvent('auth:logout', {
+        detail: { 
+          userId: user?.id,
+          timestamp: Date.now() 
+        }
+      }));
+      
+      logSecurityEvent('user_logout', { 
+        userId: user?.id,
+        userEmail: user?.email 
+      });
+    } catch (error) {
+      console.error('Erro durante logout:', error);
     }
   }, [user]);
 
-  // Sincronizar estado entre abas com melhor tratamento
   const handleStorageChange = useCallback((event) => {
     if (event.key === 'token' || event.key === 'user') {
-      const currentUser = AuthService.getUser();
-      const currentToken = AuthService.getToken();
+      const currentUser = JSON.parse(localStorage.getItem('user') || 'null');
+      const currentToken = localStorage.getItem('token');
       
       if (!currentToken || !currentUser) {
-        // Token foi removido em outra aba
         setUser(null);
-        setTokenExpiry(null);
-        setRefreshError(null);
       } else if (currentUser && currentUser.id !== user?.id) {
-        // Usuário mudou em outra aba
         setUser(currentUser);
-        setRefreshError(null);
-        checkTokenExpiry();
       }
-    }
-  }, [user, checkTokenExpiry]);
-
-  // Listener para logout em outras abas
-  const handleLogoutEvent = useCallback((event) => {
-    if (event.detail && event.detail.userId === user?.id) {
-      logSecurityEvent('logout_from_other_tab', { 
-        userId: user.id,
-        userEmail: user.email,
-        timestamp: event.detail.timestamp 
-      });
-      
-      // Limpar estado local sem fazer chamada para o servidor
-      setUser(null);
-      setTokenExpiry(null);
-      setLastActivity(Date.now());
-      setRefreshError(null);
-      setIsRefreshing(false);
     }
   }, [user]);
 
-  // Inicialização da autenticação com melhor tratamento de erros
-  useEffect(() => {
-    const initializeAuth = async () => {
-      try {
-        AuthService.setupAuthInterceptor();
-        const currentUser = AuthService.getUser();
+  const handleLogoutEvent = useCallback((event) => {
+    if (event.detail && event.detail.userId === user?.id) {
+      setUser(null);
+      setRefreshError(null);
+    }
+  }, [user]);
+
+  const login = useCallback(async (credentials) => {
+    try {
+      setIsLoading(true);
+      setRefreshError(null);
+      
+      const response = await AuthService.login(credentials);
+      
+      if (response.success) {
+        setUser(response.user);
+        updateActivity();
         
-        if (currentUser) {
-          // Verificar se o token não está expirado
-          if (!checkTokenExpiry()) {
-            setUser(currentUser);
-            
-            // Tentar renovar token se necessário
-            await refreshTokenIfNeeded();
-          } else {
-            // Token expirado, fazer logout
-            await handleLogout();
-          }
-        }
-      } catch (error) {
-        console.error('Erro na inicialização da autenticação:', error);
-        logSecurityEvent('auth_initialization_error', { 
-          error: error.message 
+        logSecurityEvent('user_login_success', { 
+          userId: response.user.id,
+          userEmail: response.user.email 
         });
-        await handleLogout();
-      } finally {
-        setLoading(false);
+        
+        return { success: true, user: response.user };
+      } else {
+        logSecurityEvent('user_login_failed', { 
+          email: credentials.email,
+          reason: response.message 
+        });
+        
+        return { success: false, message: response.message };
       }
-    };
+    } catch (error) {
+      logSecurityEvent('user_login_error', { 
+        email: credentials.email,
+        error: error.message 
+      });
+      
+      return { success: false, message: error.message };
+    } finally {
+      setIsLoading(false);
+    }
+  }, [updateActivity]);
 
-    initializeAuth();
-  }, []);
+  const logout = useCallback(() => {
+    handleLogout();
+  }, [handleLogout]);
 
-  // Configurar listeners de atividade
+  const refreshToken = useCallback(async () => {
+    return await refreshTokenIfNeeded();
+  }, [refreshTokenIfNeeded]);
+
+  const changePassword = useCallback(async (currentPassword, newPassword) => {
+    try {
+      const response = await AuthService.changePassword(currentPassword, newPassword);
+      
+      if (response.success) {
+        logSecurityEvent('password_change_success', { 
+          userId: user?.id,
+          userEmail: user?.email 
+        });
+      } else {
+        logSecurityEvent('password_change_failed', { 
+          userId: user?.id,
+          userEmail: user?.email,
+          reason: response.message 
+        });
+      }
+      
+      return response;
+    } catch (error) {
+      logSecurityEvent('password_change_error', { 
+        userId: user?.id,
+        userEmail: user?.email,
+        error: error.message 
+      });
+      
+      throw error;
+    }
+  }, [user]);
+
+  const initializeAuth = useCallback(() => {
+    try {
+      const token = localStorage.getItem('token');
+      const userData = JSON.parse(localStorage.getItem('user') || 'null');
+      
+      if (token && userData) {
+        setUser(userData);
+        updateActivity();
+        checkTokenExpiry();
+      }
+    } catch (error) {
+      console.error('Erro ao inicializar autenticação:', error);
+      logSecurityEvent('auth_init_error', { error: error.message });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [updateActivity, checkTokenExpiry]);
+
   useEffect(() => {
-    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
-    
+    initializeAuth();
+  }, [initializeAuth]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const events = [
+      'mousedown', 'mousemove', 'keypress', 'scroll', 
+      'touchstart', 'click', 'focus', 'visibilitychange'
+    ];
+
     const activityHandler = () => updateActivity();
-    
+
     events.forEach(event => {
       document.addEventListener(event, activityHandler, true);
     });
+
+    const inactivityInterval = setInterval(checkInactivity, 60000);
 
     return () => {
       events.forEach(event => {
         document.removeEventListener(event, activityHandler, true);
       });
+      clearInterval(inactivityInterval);
     };
-  }, [updateActivity]);
+  }, [user, updateActivity, checkInactivity]);
 
-  // Configurar verificação periódica
   useEffect(() => {
-    const checkInterval = setInterval(() => {
-      if (user) {
-        checkTokenExpiry();
-        checkInactivity();
-        refreshTokenIfNeeded();
-      }
-    }, 60000); // Verificar a cada minuto
+    if (!user) return;
 
-    return () => clearInterval(checkInterval);
-  }, [user, checkTokenExpiry, checkInactivity, refreshTokenIfNeeded]);
+    const tokenCheckInterval = setInterval(() => {
+      checkTokenExpiry();
+    }, 30000);
 
-  // Configurar listener de mudanças no localStorage
+    return () => {
+      clearInterval(tokenCheckInterval);
+    };
+  }, [user, checkTokenExpiry]);
+
   useEffect(() => {
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('auth:logout', handleLogoutEvent);
@@ -295,33 +309,29 @@ export const AuthProvider = ({ children }) => {
     };
   }, [handleStorageChange, handleLogoutEvent]);
 
-  const login = async (email, password) => {
-    try {
-      setRefreshError(null);
-      const { user: userData } = await AuthService.login(email, password);
-      setUser(userData);
-      setLastActivity(Date.now());
-      checkTokenExpiry();
-      return userData;
-    } catch (error) {
-      throw error;
-    }
-  };
-
-  const logout = handleLogout;
+  useEffect(() => {
+    return () => {
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
+      if (activityTimeoutRef.current) {
+        clearTimeout(activityTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const value = {
     user,
-    login,
-    logout,
-    isAuthenticated: !!user,
-    loading,
-    tokenExpiry,
-    lastActivity,
-    updateActivity,
-    refreshToken: refreshTokenIfNeeded,
+    isLoading,
     isRefreshing,
     refreshError,
+    isAuthenticated: !!user,
+    login,
+    logout,
+    refreshToken,
+    changePassword,
+    updateActivity,
+    lastActivity
   };
 
   return (

@@ -4,25 +4,22 @@ import useSession from '../../hooks/useSession';
 import { securityUtils } from '../../config/security';
 import { isTokenNearExpiry, getTokenTimeRemaining } from '../../services/httpInterceptor';
 
-// Mock das dependências
 jest.mock('../../config/security');
 jest.mock('../../services/httpInterceptor');
 jest.mock('../../middleware/security', () => ({
   logSecurityEvent: jest.fn()
 }));
 
-// Mock do AuthService
 jest.mock('../../services/AuthService', () => ({
   login: jest.fn(),
   logout: jest.fn(),
   getCurrentUser: jest.fn(),
-  getUser: jest.fn(() => null), // Inicialmente sem usuário
+  getUser: jest.fn(() => null),
   setupAuthInterceptor: jest.fn(),
   refreshToken: jest.fn(),
-  getToken: jest.fn(() => null), // Inicialmente sem token
+  getToken: jest.fn(() => null),
 }));
 
-// Mock do localStorage
 const localStorageMock = {
   getItem: jest.fn(),
   setItem: jest.fn(),
@@ -33,7 +30,6 @@ Object.defineProperty(window, 'localStorage', {
   value: localStorageMock
 });
 
-// Wrapper para renderizar com providers
 const renderWithProviders = (hook) => {
   return renderHook(hook, {
     wrapper: ({ children }) => (
@@ -48,13 +44,11 @@ describe('useSession', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     
-    // Mock padrão das funções
     securityUtils.isTokenExpired.mockReturnValue(false);
-    securityUtils.getTokenTimeRemaining.mockReturnValue(3600000); // 1 hora
+    securityUtils.getTokenTimeRemaining.mockReturnValue(3600000);
     isTokenNearExpiry.mockReturnValue(false);
     getTokenTimeRemaining.mockReturnValue(3600000);
     
-    // Mock do Date.now
     jest.spyOn(Date, 'now').mockReturnValue(1000000000000);
   });
 
@@ -73,7 +67,6 @@ describe('useSession', () => {
     });
 
     test('deve ter estado inicial correto quando há usuário', () => {
-      // Mock de usuário autenticado
       const mockUser = { id: 1, email: 'test@example.com' };
       jest.spyOn(require('../../services/AuthService'), 'getUser').mockReturnValue(mockUser);
       jest.spyOn(require('../../services/AuthService'), 'getToken').mockReturnValue('mock-token');
@@ -100,18 +93,18 @@ describe('useSession', () => {
 
     test('deve detectar token próximo da expiração', () => {
       isTokenNearExpiry.mockReturnValue(true);
-      getTokenTimeRemaining.mockReturnValue(300000); // 5 minutos
+      getTokenTimeRemaining.mockReturnValue(300000);
 
       const { result } = renderWithProviders(() => useSession());
 
       expect(result.current.isNearExpiry).toBe(true);
-      expect(result.current.needsRenewal).toBe(false); // Não há warning ativo
+      expect(result.current.needsRenewal).toBe(false);
     });
   });
 
   describe('formatação de tempo', () => {
     test('deve formatar tempo restante corretamente', () => {
-      getTokenTimeRemaining.mockReturnValue(3665000); // 1h 1m 5s
+      getTokenTimeRemaining.mockReturnValue(3665000);
 
       const { result } = renderWithProviders(() => useSession());
 
@@ -127,7 +120,7 @@ describe('useSession', () => {
     });
 
     test('deve formatar apenas segundos', () => {
-      getTokenTimeRemaining.mockReturnValue(45000); // 45s
+      getTokenTimeRemaining.mockReturnValue(45000);
 
       const { result } = renderWithProviders(() => useSession());
 
@@ -148,7 +141,6 @@ describe('useSession', () => {
 
       const { result } = renderWithProviders(() => useSession());
 
-      // Simular warning ativo
       act(() => {
         result.current.sessionWarning = true;
       });
@@ -165,7 +157,6 @@ describe('useSession', () => {
       jest.spyOn(require('../../services/AuthService'), 'getUser').mockReturnValue(mockUser);
       jest.spyOn(require('../../services/AuthService'), 'getToken').mockReturnValue('mock-token');
       
-      // Mock do refreshToken para falhar
       jest.spyOn(require('../../services/AuthService'), 'refreshToken').mockRejectedValue(new Error('Refresh failed'));
 
       const { result } = renderWithProviders(() => useSession());
@@ -190,7 +181,6 @@ describe('useSession', () => {
         result.current.extendSession();
       });
 
-      // Verificar se a atividade foi atualizada
       expect(result.current.lastActivity).toBe(1000000000000);
     });
   });
@@ -215,8 +205,8 @@ describe('useSession', () => {
     test('deve ter configurações corretas', () => {
       const { result } = renderWithProviders(() => useSession());
 
-      expect(result.current.sessionTimeout).toBe(30 * 60 * 1000); // 30 minutos
-      expect(result.current.warningThreshold).toBe(5 * 60 * 1000); // 5 minutos
+      expect(result.current.sessionTimeout).toBe(30 * 60 * 1000);
+      expect(result.current.warningThreshold).toBe(5 * 60 * 1000);
     });
   });
 
@@ -236,10 +226,8 @@ describe('useSession', () => {
       jest.spyOn(require('../../services/AuthService'), 'getUser').mockReturnValue(mockUser);
       jest.spyOn(require('../../services/AuthService'), 'getToken').mockReturnValue('mock-token');
 
-      // Mock para simular sessão inativa
       const { result } = renderWithProviders(() => useSession());
 
-      // Simular que a sessão está inativa através do mock
       expect(result.current.isSessionActive).toBe(true);
     });
   });

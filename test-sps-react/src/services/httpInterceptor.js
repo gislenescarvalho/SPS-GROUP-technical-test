@@ -33,12 +33,6 @@ const isNetworkError = (error) => {
   return !error.response && (error.code === 'NETWORK_ERROR' || error.code === 'ECONNABORTED');
 };
 
-// Função para verificar se o erro é recuperável
-const isRecoverableError = (error) => {
-  const status = error.response?.status;
-  return status === 401 || status === 403 || isNetworkError(error);
-};
-
 // Interceptor para requisições
 api.interceptors.request.use(
   (config) => {

@@ -1,30 +1,20 @@
-// Middleware de segurança para o frontend React
+import { securityUtils } from '../config/security';
 
-/**
- * Validação de entrada para prevenir XSS
- */
 export const sanitizeInput = (input) => {
   if (typeof input !== 'string') return input;
   
-  // Remover caracteres perigosos
   return input
-    .replace(/[<>]/g, '') // Remover < e >
-    .replace(/javascript:/gi, '') // Remover javascript:
-    .replace(/on\w+=/gi, '') // Remover event handlers
+    .replace(/[<>]/g, '')
+    .replace(/javascript:/gi, '')
+    .replace(/on\w+=/gi, '')
     .trim();
 };
 
-/**
- * Validação de email
- */
 export const validateEmail = (email) => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
 };
 
-/**
- * Validação de senha forte
- */
 export const validatePassword = (password) => {
   const minLength = 8;
   const hasUpperCase = /[A-Z]/.test(password);
@@ -32,151 +22,40 @@ export const validatePassword = (password) => {
   const hasNumbers = /\d/.test(password);
   const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
   
-  return {
-    isValid: password.length >= minLength && hasUpperCase && hasLowerCase && hasNumbers && hasSpecialChar,
-    errors: {
-      length: password.length < minLength ? `Senha deve ter pelo menos ${minLength} caracteres` : null,
-      uppercase: !hasUpperCase ? 'Senha deve conter pelo menos uma letra maiúscula' : null,
-      lowercase: !hasLowerCase ? 'Senha deve conter pelo menos uma letra minúscula' : null,
-      numbers: !hasNumbers ? 'Senha deve conter pelo menos um número' : null,
-      special: !hasSpecialChar ? 'Senha deve conter pelo menos um caractere especial' : null
-    }
-  };
+  return password.length >= minLength && 
+         hasUpperCase && 
+         hasLowerCase && 
+         hasNumbers && 
+         hasSpecialChar;
 };
 
-/**
- * Sanitização de dados antes de enviar para API
- */
-export const sanitizeData = (data) => {
-  if (typeof data === 'object' && data !== null) {
-    const sanitized = {};
-    for (const [key, value] of Object.entries(data)) {
-      sanitized[key] = sanitizeData(value);
-    }
-    return sanitized;
-  }
-  
-  if (typeof data === 'string') {
-    return sanitizeInput(data);
-  }
-  
-  return data;
-};
-
-/**
- * Validação de URL segura
- */
-export const validateUrl = (url) => {
-  try {
-    const urlObj = new URL(url);
-    return ['http:', 'https:'].includes(urlObj.protocol);
-  } catch {
-    return false;
-  }
-};
-
-/**
- * Prevenção de CSRF - Gerar token único
- */
 export const generateCSRFToken = () => {
-  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
 };
 
-/**
- * Validação de headers de segurança
- */
-export const validateSecurityHeaders = (headers) => {
-  const requiredHeaders = [
-    'X-Content-Type-Options',
-    'X-Frame-Options',
-    'X-XSS-Protection'
-  ];
-  
-  const missingHeaders = requiredHeaders.filter(header => !headers[header]);
-  
-  if (missingHeaders.length > 0) {
-    console.warn('⚠️ Headers de segurança ausentes:', missingHeaders);
-    return false;
-  }
-  
-  return true;
+export const validateCSRFToken = (token) => {
+  return token && token.length === 64 && /^[a-f0-9]+$/i.test(token);
 };
 
-/**
- * Log de eventos de segurança
- */
-export const logSecurityEvent = (event, details) => {
-  const securityLog = {
-    timestamp: new Date().toISOString(),
-    event,
-    details,
-    userAgent: navigator.userAgent,
-    url: window.location.href
-  };
-  
-  // Em produção, enviar para serviço de logging
-  if (process.env.NODE_ENV === 'production') {
-    // Implementar envio para serviço de logging
-    console.log('🔒 Security Event:', securityLog);
-  } else {
-    console.log('🔒 Security Event:', securityLog);
-  }
-};
-
-/**
- * Detecção de tentativas de XSS
- */
-export const detectXSSAttempt = (input) => {
-  const xssPatterns = [
-    /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
-    /javascript:/gi,
-    /on\w+\s*=/gi,
-    /<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi,
-    /<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi,
-    /<embed\b[^<]*(?:(?!<\/embed>)<[^<]*)*<\/embed>/gi
-  ];
-  
-  return xssPatterns.some(pattern => pattern.test(input));
-};
-
-/**
- * Validação de dados de entrada
- */
-export const validateInput = (input, type = 'string') => {
-  switch (type) {
-    case 'email':
-      return validateEmail(input);
-    case 'password':
-      return validatePassword(input);
-    case 'url':
-      return validateUrl(input);
-    case 'string':
-    default:
-      return !detectXSSAttempt(input);
-  }
-};
-
-/**
- * Configuração de segurança para localStorage
- */
 export const secureStorage = {
   setItem: (key, value) => {
     try {
-      const sanitizedValue = typeof value === 'string' ? sanitizeInput(value) : JSON.stringify(value);
-      localStorage.setItem(key, sanitizedValue);
+      const encryptedValue = btoa(JSON.stringify(value));
+      localStorage.setItem(key, encryptedValue);
     } catch (error) {
-      console.error('Erro ao salvar no localStorage:', error);
-      logSecurityEvent('storage_error', { key, error: error.message });
+      console.error('Erro ao salvar dados seguros:', error);
     }
   },
   
   getItem: (key) => {
     try {
-      const value = localStorage.getItem(key);
-      return value ? sanitizeInput(value) : null;
+      const encryptedValue = localStorage.getItem(key);
+      if (!encryptedValue) return null;
+      return JSON.parse(atob(encryptedValue));
     } catch (error) {
-      console.error('Erro ao ler do localStorage:', error);
-      logSecurityEvent('storage_error', { key, error: error.message });
+      console.error('Erro ao recuperar dados seguros:', error);
       return null;
     }
   },
@@ -185,79 +64,195 @@ export const secureStorage = {
     try {
       localStorage.removeItem(key);
     } catch (error) {
-      console.error('Erro ao remover do localStorage:', error);
-      logSecurityEvent('storage_error', { key, error: error.message });
+      console.error('Erro ao remover dados seguros:', error);
     }
   }
 };
 
-/**
- * Middleware de segurança para requisições
- */
+export const validateSecurityHeaders = (headers) => {
+  const requiredHeaders = [
+    'X-Content-Type-Options',
+    'X-Frame-Options',
+    'X-XSS-Protection'
+  ];
+  
+  return requiredHeaders.every(header => 
+    headers[header] && headers[header].length > 0
+  );
+};
+
+export const logSecurityEvent = (eventType, data = {}) => {
+  const securityEvent = {
+    type: eventType,
+    timestamp: new Date().toISOString(),
+    url: window.location.href,
+    userAgent: navigator.userAgent,
+    ...data
+  };
+  
+  console.warn('Evento de Segurança:', securityEvent);
+  
+  if (process.env.NODE_ENV === 'production') {
+    try {
+      fetch('/api/security/log', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': generateCSRFToken()
+        },
+        body: JSON.stringify(securityEvent)
+      }).catch(error => {
+        console.error('Erro ao enviar log de segurança:', error);
+      });
+    } catch (error) {
+      console.error('Erro ao processar log de segurança:', error);
+    }
+  }
+};
+
+export const validateInput = (input, rules = {}) => {
+  const {
+    required = false,
+    minLength = 0,
+    maxLength = Infinity,
+    pattern = null,
+    customValidator = null
+  } = rules;
+  
+  if (required && (!input || input.trim().length === 0)) {
+    return { isValid: false, error: 'Campo obrigatório' };
+  }
+  
+  if (input && input.length < minLength) {
+    return { isValid: false, error: `Mínimo de ${minLength} caracteres` };
+  }
+  
+  if (input && input.length > maxLength) {
+    return { isValid: false, error: `Máximo de ${maxLength} caracteres` };
+  }
+  
+  if (pattern && input && !pattern.test(input)) {
+    return { isValid: false, error: 'Formato inválido' };
+  }
+  
+  if (customValidator && input) {
+    const customResult = customValidator(input);
+    if (!customResult.isValid) {
+      return customResult;
+    }
+  }
+  
+  return { isValid: true };
+};
+
+export const sanitizeData = (data) => {
+  if (typeof data === 'string') {
+    return sanitizeInput(data);
+  }
+  
+  if (Array.isArray(data)) {
+    return data.map(item => sanitizeData(item));
+  }
+  
+  if (typeof data === 'object' && data !== null) {
+    const sanitized = {};
+    for (const [key, value] of Object.entries(data)) {
+      sanitized[key] = sanitizeData(value);
+    }
+    return sanitized;
+  }
+  
+  return data;
+};
+
+export const validateRequest = (requestData) => {
+  const sanitizedData = sanitizeData(requestData);
+  
+  const validationResult = {
+    isValid: true,
+    errors: [],
+    sanitizedData
+  };
+  
+  if (!sanitizedData) {
+    validationResult.isValid = false;
+    validationResult.errors.push('Dados da requisição inválidos');
+  }
+  
+  return validationResult;
+};
+
+export const addSecurityHeaders = (headers = {}) => {
+  return {
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'X-XSS-Protection': '1; mode=block',
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'",
+    ...headers
+  };
+};
+
+export const validateResponse = (response) => {
+  if (!response) {
+    logSecurityEvent('response_validation_failed', { reason: 'Resposta vazia' });
+    return false;
+  }
+  
+  if (response.status >= 400) {
+    logSecurityEvent('response_error', { 
+      status: response.status,
+      statusText: response.statusText 
+    });
+  }
+  
+  const headers = response.headers;
+  if (!validateSecurityHeaders(headers)) {
+    logSecurityEvent('security_headers_missing', { headers: Object.keys(headers) });
+  }
+  
+  return true;
+};
+
+export const handleSecurityError = (error, context = {}) => {
+  const securityError = {
+    message: error.message,
+    type: error.name,
+    context,
+    timestamp: new Date().toISOString(),
+    stack: error.stack
+  };
+  
+  logSecurityEvent('security_error', securityError);
+  
+  if (process.env.NODE_ENV === 'development') {
+    console.error('Erro de Segurança:', securityError);
+  }
+  
+  return {
+    error: 'Erro de segurança detectado',
+    details: process.env.NODE_ENV === 'development' ? securityError : undefined
+  };
+};
+
 export const securityMiddleware = {
   beforeRequest: (config) => {
-    // Sanitizar dados antes de enviar
-    if (config.data) {
-      config.data = sanitizeData(config.data);
-    }
-    
-    // Adicionar headers de segurança
-    config.headers = {
-      ...config.headers,
-      'X-Requested-With': 'XMLHttpRequest',
-      'X-CSRF-Token': generateCSRFToken()
-    };
-    
+    config = sanitizeData(config);
+    config.headers = addSecurityHeaders(config.headers);
     return config;
   },
   
   afterResponse: (response) => {
-    // Validar headers de segurança da resposta
-    validateSecurityHeaders(response.headers);
-    
-    // Log de resposta suspeita
-    if (response.status >= 400) {
-      logSecurityEvent('api_error', {
-        status: response.status,
-        url: response.config?.url,
-        method: response.config?.method
-      });
-    }
-    
+    validateResponse(response);
     return response;
   },
   
   onError: (error) => {
-    // Log de erros de segurança
-    if (error.response?.status === 403) {
-      logSecurityEvent('forbidden_access', {
-        url: error.config?.url,
-        method: error.config?.method
-      });
-    }
-    
-    if (error.response?.status === 401) {
-      logSecurityEvent('unauthorized_access', {
-        url: error.config?.url,
-        method: error.config?.method
-      });
-    }
-    
+    logSecurityEvent('request_error', { 
+      error: error.message,
+      url: error.config?.url,
+      method: error.config?.method 
+    });
     return error;
   }
-};
-
-export default {
-  sanitizeInput,
-  validateEmail,
-  validatePassword,
-  sanitizeData,
-  validateUrl,
-  generateCSRFToken,
-  validateSecurityHeaders,
-  logSecurityEvent,
-  detectXSSAttempt,
-  validateInput,
-  secureStorage,
-  securityMiddleware
 };

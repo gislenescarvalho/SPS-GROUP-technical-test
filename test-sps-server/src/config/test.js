@@ -1,4 +1,3 @@
-// Configuração específica para testes
 const config = {
   server: {
     port: 3000,
@@ -26,8 +25,8 @@ const config = {
   },
   
   rateLimit: {
-    windowMs: 15 * 60 * 1000, // 15 minutos
-    max: 100, // limite por IP
+    windowMs: 15 * 60 * 1000,
+    max: 100,
     message: {
       error: 'Muitas requisições. Tente novamente em alguns minutos.'
     },
@@ -51,20 +50,20 @@ const config = {
     host: 'localhost',
     port: 6379,
     password: null,
-    db: 1 // Usar DB diferente para testes
+    db: 1
   },
   
   cache: {
-    enabled: true, // Habilitar cache para testes
-    defaultTTL: 60, // 1 minuto para testes
-    userTTL: 120, // 2 minutos para testes
+    enabled: true,
+    defaultTTL: 60,
+    userTTL: 120,
     maxSize: 100,
-    paginationTTL: 60, // 1 minuto para testes
-    metricsTTL: 30 // 30 segundos para testes
+    paginationTTL: 60,
+    metricsTTL: 30
   },
   
   metrics: {
-    enabled: false, // Desabilitar métricas em testes
+    enabled: false,
     retentionDays: 1
   }
 };

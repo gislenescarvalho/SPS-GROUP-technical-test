@@ -1,7 +1,6 @@
 import UserService from '../../services/UserService';
 import UserRepository from '../../repositories/UserRepository';
 
-// Mock do repositório
 jest.mock('../../repositories/UserRepository');
 
 describe('UserService', () => {
@@ -73,7 +72,7 @@ describe('UserService', () => {
     });
 
     test('deve validar dados obrigatórios', async () => {
-      const invalidData = { name: 'Teste' }; // Faltando email, type e password
+      const invalidData = { name: 'Teste' };
 
       await expect(UserService.create(invalidData)).rejects.toThrow();
     });
@@ -155,7 +154,6 @@ describe('UserService', () => {
       
       UserRepository.findById.mockResolvedValue(adminUser);
       
-      // Mock para contar apenas 1 admin
       UserService.getAdminCount = jest.fn().mockResolvedValue(1);
 
       await expect(UserService.delete(1)).rejects.toThrow('Não é possível deletar o último administrador');
