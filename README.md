@@ -6,8 +6,33 @@ Sistema completo de gerenciamento de usuários com backend Node.js/Express e fro
 
 ```
 SPS-GROUP-technical-test/
-├── test-sps-server/     # Backend em Node.js/Express
-└── test-sps-react/      # Frontend em React
+├── test-sps-server/           # Backend em Node.js/Express
+│   ├── src/
+│   │   ├── config/           # Configurações da aplicação
+│   │   ├── controllers/      # Controladores da API
+│   │   ├── database/         # Banco de dados fake
+│   │   ├── middleware/       # Middlewares (auth, security, etc.)
+│   │   ├── routes/           # Definição de rotas
+│   │   ├── services/         # Lógica de negócio
+│   │   ├── utils/            # Utilitários
+│   │   └── validations/      # Schemas de validação
+│   ├── tests/                # Testes unitários e integração
+│   └── package.json
+├── test-sps-react/            # Frontend em React
+│   ├── src/
+│   │   ├── components/       # Componentes reutilizáveis
+│   │   ├── contexts/         # Contextos React
+│   │   ├── hooks/            # Custom hooks
+│   │   ├── pages/            # Páginas da aplicação
+│   │   ├── services/         # Serviços de API
+│   │   ├── styles/           # Estilos CSS
+│   │   └── validations/      # Validações de formulário
+│   ├── __tests__/            # Testes unitários
+│   └── package.json
+├── start-dev.js              # Script de inicialização cross-platform
+├── start-dev.ps1             # Script PowerShell para Windows
+├── start-dev.bat             # Script Batch para Windows
+└── README.md                 # Este arquivo
 ```
 
 ## 🚀 Pré-requisitos
@@ -15,7 +40,7 @@ SPS-GROUP-technical-test/
 - **npm** ou **yarn**
 - **Git** (para clonar o repositório)
 - **Navegador moderno** (Chrome, Firefox, Safari, Edge)
-- **Redis** (opcional - para cache avançado)
+
 
 ## 🤖 Scripts de Automação
 
@@ -86,9 +111,11 @@ node start-dev.js --help
 cd test-sps-server
 npm install
 cp env.example .env
+
 npm run dev
 ```
 **Servidor:** http://localhost:3000
+**API Docs:** http://localhost:3000/api-docs
 
 ### 2. Frontend (test-sps-react)
 ```bash
@@ -106,7 +133,7 @@ npm start
 ```json
 {
   "email": "admin@spsgroup.com.br",
-  "password": "1234"
+  "password": "Admin@2024!"
 }
 ```
 
@@ -115,43 +142,75 @@ npm start
 ## 🛠️ Tecnologias
 
 ### Backend
-- **Node.js + Express** - Framework web
-- **JWT** - Autenticação
-- **Joi** - Validação
-- **Jest** - Testes
-- **Swagger** - Documentação da API
+- **Node.js + Express** - Framework web e roteamento
+- **JWT** - Autenticação e autorização
+- **Joi** - Validação de dados e schemas
+- **bcryptjs** - Hash de senhas
+- **Jest** - Framework de testes
+- **Swagger/OpenAPI** - Documentação da API
+- **node-cache** - Cache em memória
+- **express-rate-limit** - Rate limiting
+- **cors** - Cross-Origin Resource Sharing
 
 ### Frontend
-- **React 18** - Interface
-- **React Router** - Navegação
-- **Axios** - HTTP Client
-- **Context API** - Estado
-- **Jest + Testing Library** - Testes
+- **React 18** - Biblioteca de interface
+- **React Router DOM** - Roteamento e navegação
+- **Axios** - Cliente HTTP para APIs
+- **Context API** - Gerenciamento de estado global
+- **Jest + React Testing Library** - Testes unitários
+- **CSS Variables** - Sistema de design tokens
+- **CSS Grid/Flexbox** - Layout responsivo
+- **ARIA Attributes** - Acessibilidade web
 
 ## 🎯 Funcionalidades
 
 ### Backend
-- ✅ Autenticação JWT
-- ✅ CRUD de usuários
-- ✅ Validação de dados
-- ✅ Middleware de segurança
-- ✅ Cache com Redis/Node-Cache
-- ✅ Documentação Swagger
-- ✅ Testes unitários e integração
+- ✅ **Autenticação JWT** com refresh tokens
+- ✅ **CRUD completo** de usuários (listar, criar, editar, excluir)
+- ✅ **Validação robusta** com Joi (email único, senha forte, etc.)
+- ✅ **Middleware de segurança** (CORS, rate limiting, cache)
+- ✅ **Cache em memória** (node-cache) para performance
+- ✅ **Rate limiting** para proteção contra ataques
+- ✅ **Auditoria** de operações (logs de criação/edição/exclusão)
+- ✅ **Documentação Swagger** completa da API
+- ✅ **Testes unitários e integração** com Jest
+- ✅ **Versionamento** da API
+- ✅ **Banco de dados fake** em memória para demonstração
 
 ### Frontend
-- ✅ Interface responsiva e acessível
-- ✅ Autenticação JWT
-- ✅ CRUD de usuários
-- ✅ Painel de acessibilidade
-- ✅ Validação de formulários
-- ✅ Testes unitários
+- ✅ **Interface responsiva** com design mobile-first
+- ✅ **Autenticação JWT** com proteção de rotas
+- ✅ **CRUD completo** de usuários com modais de confirmação
+- ✅ **Painel de acessibilidade** (tema escuro/claro, fonte, contraste)
+- ✅ **Validação de formulários** em tempo real
+- ✅ **Navegação por teclado** completa
+- ✅ **Modais interativos** para feedback e confirmações
+- ✅ **Testes unitários** com React Testing Library
+- ✅ **Gestão de sessão** com avisos de expiração
+- ✅ **Indicador de força de senha** em tempo real
 
 ## 📚 Documentação
 
 - **API Docs:** http://localhost:3000/api-docs
 - **Backend:** [README detalhado](./test-sps-server/readme.md)
 - **Frontend:** [README detalhado](./test-sps-react/README.md)
+
+## ♿ Recursos de Acessibilidade
+
+### Frontend
+- **Tema adaptável**: Alternância entre modo claro e escuro
+- **Controle de fonte**: A-, A, A+ para diferentes tamanhos
+- **Alto contraste**: Modo de alto contraste para melhor visibilidade
+- **Redução de movimento**: Opção para desabilitar animações
+- **Navegação por teclado**: Navegação completa via Tab, Enter, Esc
+- **ARIA labels**: Atributos de acessibilidade em todos os elementos
+- **Foco visível**: Indicadores claros de foco para navegação
+
+### Backend
+- **Validação robusta**: Verificação de dados de entrada
+- **Mensagens de erro claras**: Feedback específico para problemas
+- **Rate limiting**: Proteção contra ataques automatizados
+- **Logs estruturados**: Rastreamento de operações para auditoria
 
 ## 🔧 Comandos Úteis
 
@@ -192,17 +251,42 @@ npm run test:watch  # Testes em watch
 - **Porta ocupada:** Use `node stop-dev.js` para parar serviços anteriores
 - **Arquivo .env não criado:** Execute `node start-dev.js --install-only`
 
-### Geral
-- **Porta 3000 ocupada:** Altere no `.env` do backend
-- **CORS:** Verifique origens no backend
+### Backend
+- **Porta 3000 ocupada:** Altere `PORT` no `.env` do backend
+- **JWT_SECRET não configurado:** Configure no `.env` do backend (obrigatório)
+- **Erro de CORS:** Verifique `CORS_ORIGIN` no `.env` do backend
 - **Dependências:** Delete `node_modules` e `package-lock.json`, execute `npm install`
-- **Redis:** Opcional, projeto funciona sem ele
+
+### Frontend
+- **Porta 3001 ocupada:** Altere `PORT` no `.env.development` do frontend
+- **Erro de conexão com API:** Verifique se o backend está rodando na porta 3000
+- **Build falha:** Verifique se todas as dependências estão instaladas
+- **Testes falham:** Execute `npm test -- --watchAll=false` para ver detalhes
+
+### Geral
+- **Credenciais não funcionam:** Use `admin@spsgroup.com.br` / `Admin@2024!`
+- **Dados perdidos:** O banco é fake em memória, reinicie para resetar
+- **Performance lenta:** Verifique se o cache está habilitado no backend
 
 ## 📝 Notas
 
-- **Banco de dados mockado:** Dados simulados em memória (perdidos ao reiniciar)
-- **Acesso simulado:** Credenciais fixas para demonstração
-- **Configurado para desenvolvimento local**
-- **Inclui recursos completos de acessibilidade**
-- **Cobertura de testes para frontend e backend**
-- **Projeto de teste:** Não recomendado para produção sem adaptações
+### Características do Projeto
+- **Banco de dados fake:** Dados simulados em memória (perdidos ao reiniciar)
+- **Credenciais fixas:** `admin@spsgroup.com.br` / `Admin@2024!` para demonstração
+- **Configuração local:** Otimizado para desenvolvimento local
+- **Acessibilidade completa:** Conformidade com WCAG 2.1
+- **Cobertura de testes:** Testes unitários e integração para frontend e backend
+
+### Limitações
+- **Projeto de demonstração:** Não recomendado para produção sem adaptações
+- **Sem persistência:** Dados são perdidos ao reiniciar o servidor
+- **Autenticação simples:** JWT sem refresh tokens avançados
+- **Sem banco real:** Usa banco fake em memória
+
+### Próximos Passos para Produção
+- Implementar banco de dados real (PostgreSQL, MongoDB)
+- Adicionar refresh tokens para JWT
+- Configurar HTTPS e certificados SSL
+- Implementar logging estruturado
+- Adicionar monitoramento e métricas
+- Configurar CI/CD pipeline

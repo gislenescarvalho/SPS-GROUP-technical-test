@@ -15,12 +15,12 @@ class APIVersioning {
     [APIVersioning.VERSIONS.V1]: {
       deprecated: false,
       sunsetDate: null,
-      features: ['basic_auth', 'user_management', 'metrics']
+      features: ['basic_auth', 'user_management']
     },
     [APIVersioning.VERSIONS.V2]: {
       deprecated: false,
       sunsetDate: null,
-      features: ['basic_auth', 'user_management', 'metrics', 'refresh_tokens', 'audit_logs', 'advanced_pagination']
+      features: ['basic_auth', 'user_management', 'refresh_tokens', 'audit_logs', 'advanced_pagination']
     }
   };
 

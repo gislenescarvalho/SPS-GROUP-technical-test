@@ -7,7 +7,7 @@ let users = [
     name: "admin",
     email: "admin@spsgroup.com.br",
     type: "admin",
-    password: "$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj4J/HS.i8eO"
+    password: "Admin@2024!" // Será hasheada na inicialização
   }
 ];
 
@@ -16,8 +16,8 @@ let nextId = 2;
 class FakeDatabase {
   async initializeDatabase() {
     const adminUser = users.find(u => u.id === 1);
-    if (adminUser && adminUser.password === "1234") {
-      adminUser.password = await bcrypt.hash("1234", config.security.bcryptRounds);
+    if (adminUser && adminUser.password === "Admin@2024!") {
+      adminUser.password = await bcrypt.hash("Admin@2024!", config.security.bcryptRounds);
     }
   }
 

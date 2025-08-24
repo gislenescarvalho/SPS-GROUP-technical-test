@@ -25,51 +25,115 @@ class AuthService {
         throw new Error('Senha deve ter pelo menos 4 caracteres');
       }
       
+      // Validar força da senha (mais permissivo para desenvolvimento)
+      if (process.env.NODE_ENV === 'production' && !validatePassword(password)) {
+        throw new Error('Senha não atende aos critérios de segurança');
+      }
+      
       // Chamar repositório para login
       const result = await this.repository.login({
         email: email.toLowerCase().trim(),
         password,
       });
       
-      const { user, token, refreshToken } = result;
+      // Verificar se a resposta é válida
+      if (!result || !result.data) {
+        throw new Error('Resposta inválida do servidor');
+      }
+      
+      // Extrair dados da resposta do servidor
+      const { user, accessToken: token, refreshToken } = result.data;
+      
+      // Verificar se os dados necessários estão presentes
+      if (!user || !token) {
+        throw new Error('Dados de autenticação incompletos');
+      }
       
       // Salvar tokens no localStorage de forma segura
-      secureStorage.setItem("token", token);
-      secureStorage.setItem("refreshToken", refreshToken);
-      secureStorage.setItem("user", user);
+      try {
+        secureStorage.setItem("token", token);
+        secureStorage.setItem("refreshToken", refreshToken);
+        secureStorage.setItem("user", user);
+        
+        // Log de login bem-sucedido (apenas em desenvolvimento)
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🔒 Login bem-sucedido:', { userId: user?.id || 'unknown', userEmail: user?.email || 'unknown' });
+        }
+        
+        // Log de segurança
+        logSecurityEvent('login_success', {
+          userId: user.id,
+          userEmail: user.email
+        });
+        
+      } catch (storageError) {
+        console.error('Erro ao salvar dados no localStorage:', storageError);
+        throw new Error('Erro ao salvar dados de autenticação');
+      }
       
       // Configurar token para todas as requisições
-      setAuthToken(token);
+      try {
+        setAuthToken(token);
+      } catch (tokenError) {
+        console.error('Erro ao configurar token:', tokenError);
+        throw new Error('Erro ao configurar autenticação');
+      }
       
-      // Log de login bem-sucedido
-      logSecurityEvent('login_success', { 
-        userId: user.id, 
-        userEmail: user.email 
-      });
-      
-      return { user, token, refreshToken };
+      return { success: true, user, token, refreshToken };
     } catch (error) {
-      // Log de tentativa de login falhada
-      logSecurityEvent('login_failed', { 
-        email: email,
-        error: error.message 
-      });
+      // Log detalhado do erro para debug
+      if (process.env.NODE_ENV === 'development') {
+        console.error('🔒 Erro no login:', {
+          error: error.message,
+          response: error.response?.data,
+          status: error.response?.status,
+          stack: error.stack
+        });
+      }
       
-      throw new Error(error.userMessage || error.response?.data?.message || "Erro ao fazer login");
+      // Log de tentativa de login falhada apenas se for um erro real
+      if (error.response?.status >= 400) {
+        logSecurityEvent('login_failed', { 
+          email: email,
+          error: error.message,
+          status: error.response?.status
+        });
+      }
+      
+      // Se o erro já tem uma mensagem específica, usar ela
+      if (error.userMessage || error.response?.data?.message) {
+        throw new Error(error.userMessage || error.response?.data?.message);
+      }
+      
+      // Se for um erro de validação ou estrutura, usar mensagem específica
+      if (error.message === 'Resposta inválida do servidor' || 
+          error.message === 'Dados de autenticação incompletos' ||
+          error.message === 'Email inválido' ||
+          error.message === 'Senha deve ter pelo menos 4 caracteres') {
+        throw new Error(error.message);
+      }
+      
+      throw new Error("Erro ao fazer login");
     }
   }
 
   /**
-   * Realizar logout
+   * Fazer logout do usuário
    */
   async logout() {
     try {
       // Log de logout bem-sucedido
       const user = this.getUser();
-      if (user) {
+      if (user && user.id && user.email) {
         logSecurityEvent('logout_success', { 
           userId: user.id, 
           userEmail: user.email 
+        });
+      } else if (user) {
+        // Log com dados parciais se disponíveis
+        logSecurityEvent('logout_success', { 
+          userId: user.id || 'unknown',
+          userEmail: user.email || 'unknown'
         });
       }
 
@@ -79,11 +143,26 @@ class AuthService {
       console.error('Erro ao fazer logout no servidor:', error);
       logSecurityEvent('logout_error', { error: error.message });
     } finally {
-      // Limpar dados locais independente do resultado
-      secureStorage.removeItem("token");
-      secureStorage.removeItem("refreshToken");
-      secureStorage.removeItem("user");
-      clearAuthToken();
+      // Sempre limpar dados locais, independente do resultado
+      try {
+        secureStorage.removeItem("token");
+        secureStorage.removeItem("refreshToken");
+        secureStorage.removeItem("user");
+
+        clearAuthToken();
+        
+        // Disparar evento de logout para notificar outros componentes
+        const currentUser = this.getUser();
+        window.dispatchEvent(new CustomEvent('auth:logout', {
+          detail: {
+            timestamp: Date.now(),
+            reason: 'user_logout',
+            userId: currentUser?.id || null
+          }
+        }));
+      } catch (cleanupError) {
+        console.error('Erro ao limpar dados locais:', cleanupError);
+      }
     }
   }
 
@@ -98,8 +177,22 @@ class AuthService {
    * Obter usuário atual
    */
   getUser() {
-    const user = secureStorage.getItem("user");
-    return user ? (typeof user === 'string' ? JSON.parse(user) : user) : null;
+    try {
+      const user = secureStorage.getItem("user") || localStorage.getItem("user");
+      if (!user) return null;
+      
+      const parsedUser = typeof user === 'string' ? JSON.parse(user) : user;
+      
+      // Verificar se o usuário tem as propriedades essenciais
+      if (parsedUser && typeof parsedUser === 'object') {
+        return parsedUser;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Erro ao obter usuário:', error);
+      return null;
+    }
   }
 
   /**
@@ -130,7 +223,7 @@ class AuthService {
       }
 
       const result = await this.repository.refreshToken(refreshToken);
-      const { token: newToken, refreshToken: newRefreshToken } = result;
+      const { accessToken: newToken, refreshToken: newRefreshToken } = result.data;
       
       // Atualizar tokens
       secureStorage.setItem('token', newToken);
@@ -139,7 +232,17 @@ class AuthService {
       
       return { token: newToken, refreshToken: newRefreshToken };
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Erro ao renovar token');
+      // Se o erro já tem uma mensagem específica, usar ela
+      if (error.message === 'Refresh token não encontrado') {
+        throw new Error(error.message);
+      }
+      
+      // Se for um erro do repositório, propagar a mensagem
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      
+      throw new Error('Erro ao renovar token');
     }
   }
 

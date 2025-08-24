@@ -22,7 +22,10 @@ const securityConfig = {
       requireUppercase: true,
       requireLowercase: true,
       requireNumbers: true,
-      requireSpecialChars: true
+      requireSpecialChars: true,
+      preventCommonPasswords: true,
+      preventSequentialChars: true,
+      preventRepeatedChars: true
     },
     email: {
       maxLength: 255,
@@ -160,10 +163,24 @@ export const securityUtils = {
     if (!token) return true;
     
     try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
+      // Verificar se o token tem o formato correto de JWT (3 partes separadas por ponto)
+      const parts = token.split('.');
+      if (parts.length !== 3) {
+        console.warn('Token não está no formato JWT correto');
+        return true;
+      }
+      
+      // Decodificar o payload (segunda parte do JWT)
+      const payload = JSON.parse(atob(parts[1]));
       const expiry = payload.exp * 1000;
-      return Date.now() >= expiry;
-    } catch {
+      const now = Date.now();
+      
+      // Adicionar margem de segurança de 5 minutos
+      const safetyMargin = 5 * 60 * 1000; // 5 minutos
+      
+      return now >= (expiry - safetyMargin);
+    } catch (error) {
+      console.warn('Erro ao decodificar token:', error);
       return true;
     }
   },
@@ -172,10 +189,24 @@ export const securityUtils = {
     if (!token) return 0;
     
     try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
+      // Verificar se o token tem o formato correto de JWT (3 partes separadas por ponto)
+      const parts = token.split('.');
+      if (parts.length !== 3) {
+        console.warn('Token não está no formato JWT correto');
+        return 0;
+      }
+      
+      // Decodificar o payload (segunda parte do JWT)
+      const payload = JSON.parse(atob(parts[1]));
       const expiry = payload.exp * 1000;
-      return Math.max(0, expiry - Date.now());
-    } catch {
+      const now = Date.now();
+      
+      // Adicionar margem de segurança de 5 minutos
+      const safetyMargin = 5 * 60 * 1000; // 5 minutos
+      
+      return Math.max(0, (expiry - safetyMargin) - now);
+    } catch (error) {
+      console.warn('Erro ao decodificar token:', error);
       return 0;
     }
   }

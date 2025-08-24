@@ -166,7 +166,12 @@ describe('Users CRUD Integration Tests', () => {
         .expect(201);
 
       expect(response.body).toEqual(mockCreatedUser);
-      expect(userService.createUser).toHaveBeenCalledWith(userData);
+      expect(userService.createUser).toHaveBeenCalledWith(userData, {
+        userId: 1,
+        userEmail: 'admin@spsgroup.com.br',
+        userType: 'admin',
+        ipAddress: '::ffff:127.0.0.1'
+      });
     });
 
     it('deve retornar erro 400 quando nome está faltando', async () => {
@@ -346,7 +351,12 @@ describe('Users CRUD Integration Tests', () => {
         .expect(200);
 
       expect(response.body).toEqual(mockUpdatedUser);
-      expect(userService.updateUser).toHaveBeenCalledWith('1', updateData);
+      expect(userService.updateUser).toHaveBeenCalledWith('1', updateData, {
+        userId: 1,
+        userEmail: 'admin@spsgroup.com.br',
+        userType: 'admin',
+        ipAddress: '::ffff:127.0.0.1'
+      });
       expect(response.body.name).toBe('Updated Name');
     });
 
@@ -472,7 +482,12 @@ describe('Users CRUD Integration Tests', () => {
         .set('Authorization', `Bearer ${validToken}`)
         .expect(204);
 
-      expect(userService.deleteUser).toHaveBeenCalledWith('2');
+      expect(userService.deleteUser).toHaveBeenCalledWith('2', {
+        userId: 1,
+        userEmail: 'admin@spsgroup.com.br',
+        userType: 'admin',
+        ipAddress: '::ffff:127.0.0.1'
+      });
     });
 
     it('deve retornar erro 404 quando usuário não existe', async () => {

@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { useToastContext } from "../contexts/ToastContext";
 import AccessibilityPanel from "../components/AccessibilityPanel";
 import FormField from "../components/FormField";
-import ErrorHandler, { useErrorHandler } from "../components/ErrorHandler";
+import LoaderInline from "../components/LoaderInline";
 import { loginSchema, validateData } from "../validations/userValidations";
 
 function SignIn() {
@@ -14,7 +15,7 @@ function SignIn() {
   
   const { login } = useAuth();
   const navigate = useNavigate();
-  const { addError, ErrorList } = useErrorHandler();
+  const { showError, showSuccess } = useToastContext();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -30,18 +31,15 @@ function SignIn() {
     setLoading(true);
 
     try {
-      await login(email, password);
-      navigate("/users");
+      const result = await login(email, password);
+      if (result.success) {
+        showSuccess('Login realizado com sucesso!');
+        navigate("/");
+      } else {
+        showError(result.message || 'Erro ao fazer login. Verifique suas credenciais.');
+      }
     } catch (error) {
-      addError({
-        title: 'Erro no Login',
-        message: error.message,
-        userMessage: error.userMessage || error.message,
-        details: {
-          email: email,
-          timestamp: new Date().toISOString()
-        }
-      });
+      showError(error.userMessage || error.message || 'Erro inesperado ao fazer login.');
     } finally {
       setLoading(false);
     }
@@ -73,8 +71,6 @@ function SignIn() {
         }}>
           Login
         </h1>
-        
-        <ErrorList variant="error" showDetails={false} />
 
         <form onSubmit={handleSubmit}>
           <FormField
@@ -85,7 +81,7 @@ function SignIn() {
             onChange={(e) => setEmail(e.target.value)}
             error={validationErrors.email}
             required
-            placeholder="admin@spsgroup.com.br"
+            placeholder="email@example.com"
           />
 
           <FormField
@@ -96,7 +92,7 @@ function SignIn() {
             onChange={(e) => setPassword(e.target.value)}
             error={validationErrors.password}
             required
-            placeholder="1234"
+            placeholder="********"
           />
 
           <button
@@ -117,7 +113,7 @@ function SignIn() {
             }}
             aria-label={loading ? "Fazendo login..." : "Fazer login"}
           >
-            {loading ? "Fazendo login..." : "Entrar"}
+            {loading ? <LoaderInline text="Fazendo login..." /> : "Entrar"}
           </button>
         </form>
 
@@ -133,7 +129,15 @@ function SignIn() {
         }}>
           <p style={{ margin: "var(--spacing-xs) 0", fontWeight: "bold" }}>Usuário padrão:</p>
           <p style={{ margin: "var(--spacing-xs) 0" }}>Email: admin@spsgroup.com.br</p>
-          <p style={{ margin: "var(--spacing-xs) 0" }}>Senha: 1234</p>
+          <p style={{ margin: "var(--spacing-xs) 0" }}>Senha: Admin@2024!</p>
+          <p style={{ 
+            margin: "var(--spacing-xs) 0", 
+            fontSize: "var(--font-size-small)",
+            color: "var(--warning-color)",
+            fontStyle: "italic"
+          }}>
+            ⚠️ Use uma senha forte em produção
+          </p>
         </div>
 
         {/* Informações sobre acessibilidade */}

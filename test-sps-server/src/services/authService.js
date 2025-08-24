@@ -2,7 +2,14 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const database = require('../database/fakeDatabase');
 const config = require('../config');
-const redisService = require('./redisService');
+const NodeCache = require('node-cache');
+
+// Cache em memória para tokens de refresh
+const tokenCache = new NodeCache({
+  stdTTL: 7 * 24 * 3600, // 7 dias padrão
+  checkperiod: 3600,
+  useClones: false
+});
 
 class AuthService {
   // Gerar token de acesso
@@ -10,11 +17,14 @@ class AuthService {
     return jwt.sign(
       { 
         id: user.id, 
-        email: user.email, 
         type: user.type 
+        // Removido: email para reduzir tamanho
       },
       config.jwt.secret,
-      { expiresIn: config.jwt.expiresIn }
+      { 
+        expiresIn: config.jwt.expiresIn,
+        algorithm: 'HS256' // Usar algoritmo mais eficiente
+      }
     );
   }
 
@@ -23,16 +33,19 @@ class AuthService {
     const refreshToken = jwt.sign(
       { 
         id: user.id, 
-        email: user.email,
         type: 'refresh'
+        // Removido: email para reduzir tamanho
       },
       config.jwt.secret,
-      { expiresIn: config.jwt.refreshExpiresIn }
+      { 
+        expiresIn: config.jwt.refreshExpiresIn,
+        algorithm: 'HS256' // Usar algoritmo mais eficiente
+      }
     );
 
-    // Armazenar refresh token no Redis com TTL
+    // Armazenar refresh token em memória com TTL
     const ttl = this.getTokenTTL(config.jwt.refreshExpiresIn);
-    redisService.set(`refresh_token:${user.id}`, refreshToken, ttl);
+    tokenCache.set(`refresh_token:${user.id}`, refreshToken, ttl);
     
     return refreshToken;
   }
@@ -73,9 +86,7 @@ class AuthService {
     const accessToken = this.generateAccessToken(user);
     const refreshToken = this.generateRefreshToken(user);
 
-    // Registrar métrica de login
-    await redisService.incrementMetric('user_logins');
-    await redisService.incrementMetric(`login_${user.type}`);
+    
 
     return {
       user: {
@@ -100,8 +111,8 @@ class AuthService {
         throw new Error('Token inválido');
       }
 
-      // Verificar se o refresh token está armazenado no Redis
-      const storedToken = await redisService.get(`refresh_token:${decoded.id}`);
+      // Verificar se o refresh token está armazenado em memória
+      const storedToken = tokenCache.get(`refresh_token:${decoded.id}`);
       
       if (!storedToken || storedToken !== refreshToken) {
         throw new Error('Refresh token inválido ou expirado');
@@ -119,10 +130,9 @@ class AuthService {
       const newRefreshToken = this.generateRefreshToken(user);
 
       // Invalidar refresh token antigo
-      await redisService.del(`refresh_token:${decoded.id}`);
+      tokenCache.del(`refresh_token:${decoded.id}`);
 
-      // Registrar métrica de renovação
-      await redisService.incrementMetric('token_refreshes');
+
 
       return {
         accessToken: newAccessToken,
@@ -145,14 +155,13 @@ class AuthService {
     try {
       // Invalidar refresh token se fornecido
       if (refreshToken) {
-        await redisService.del(`refresh_token:${userId}`);
+        tokenCache.del(`refresh_token:${userId}`);
       }
 
       // Adicionar token de acesso à blacklist (opcional)
-      // await redisService.set(`blacklist:${accessToken}`, 'true', 3600);
+      // tokenCache.set(`blacklist:${accessToken}`, 'true', 3600);
 
-      // Registrar métrica de logout
-      await redisService.incrementMetric('user_logouts');
+
 
       return true;
     } catch (error) {
@@ -164,7 +173,7 @@ class AuthService {
   // Verificar se token está na blacklist
   async isTokenBlacklisted(token) {
     try {
-      const blacklisted = await redisService.get(`blacklist:${token}`);
+      const blacklisted = tokenCache.get(`blacklist:${token}`);
       return !!blacklisted;
     } catch (error) {
       return false;
@@ -177,7 +186,6 @@ class AuthService {
       // Esta funcionalidade seria implementada com um job agendado
       // Por enquanto, apenas log
       console.log('🧹 Limpeza de tokens expirados executada');
-      await redisService.incrementMetric('token_cleanup_runs');
     } catch (error) {
       console.error('❌ Erro na limpeza de tokens:', error.message);
     }
@@ -186,20 +194,7 @@ class AuthService {
   // Obter estatísticas de autenticação
   async getAuthStats() {
     try {
-      const stats = await redisService.getMetrics([
-        'user_logins',
-        'user_logouts',
-        'token_refreshes',
-        'login_admin',
-        'login_user'
-      ]);
-
       return {
-        logins: stats.user_logins || 0,
-        logouts: stats.user_logouts || 0,
-        tokenRefreshes: stats.token_refreshes || 0,
-        adminLogins: stats.login_admin || 0,
-        userLogins: stats.login_user || 0,
         activeSessions: await this.getActiveSessionsCount()
       };
     } catch (error) {
@@ -211,8 +206,9 @@ class AuthService {
   // Contar sessões ativas
   async getActiveSessionsCount() {
     try {
-      const keys = await redisService.keys('refresh_token:*');
-      return keys.length;
+      const keys = tokenCache.keys();
+      const refreshTokens = keys.filter(key => key.startsWith('refresh_token:'));
+      return refreshTokens.length;
     } catch (error) {
       return 0;
     }

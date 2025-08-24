@@ -54,13 +54,13 @@ function Home() {
                 backgroundColor: "var(--primary-color)",
                 color: "white",
                 textDecoration: "none",
-                padding: "var(--spacing-lg)",
+                padding: "1rem",
                 borderRadius: "8px",
                 textAlign: "center",
                 fontWeight: "bold",
                 fontSize: "var(--font-size-large)",
                 transition: "all 0.3s ease",
-                minHeight: "60px",
+                minHeight: "20px",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center"
@@ -105,9 +105,7 @@ function Home() {
                   justifyContent: "space-between",
                   alignItems: "center",
                   padding: "var(--spacing-sm)",
-                  backgroundColor: "var(--background-color)",
-                  borderRadius: "4px",
-                  border: "1px solid var(--border-color)"
+                  backgroundColor: "var(--background-secondary)"
                 }}>
                   <strong style={{ fontSize: "var(--font-size-medium)" }}>Nome:</strong>
                   <span style={{ fontSize: "var(--font-size-medium)" }}>{user.name}</span>
@@ -117,9 +115,7 @@ function Home() {
                   justifyContent: "space-between",
                   alignItems: "center",
                   padding: "var(--spacing-sm)",
-                  backgroundColor: "var(--background-color)",
-                  borderRadius: "4px",
-                  border: "1px solid var(--border-color)"
+                  backgroundColor: "var(--background-secondary)"
                 }}>
                   <strong style={{ fontSize: "var(--font-size-medium)" }}>Email:</strong>
                   <span style={{ fontSize: "var(--font-size-medium)" }}>{user.email}</span>
@@ -129,9 +125,7 @@ function Home() {
                   justifyContent: "space-between",
                   alignItems: "center",
                   padding: "var(--spacing-sm)",
-                  backgroundColor: "var(--background-color)",
-                  borderRadius: "4px",
-                  border: "1px solid var(--border-color)"
+                  backgroundColor: "var(--background-secondary)"
                 }}>
                   <strong style={{ fontSize: "var(--font-size-medium)" }}>Tipo:</strong>
                   <span style={{

@@ -13,7 +13,7 @@ describe('Joi Validation Schemas', () => {
     it('deve validar dados de login válidos', () => {
       const validData = {
         email: 'admin@spsgroup.com.br',
-        password: '1234'
+        password: 'Admin@2024!'
       };
 
       const { error, value } = loginSchema.validate(validData);
@@ -25,7 +25,7 @@ describe('Joi Validation Schemas', () => {
     it('deve rejeitar email inválido', () => {
       const invalidData = {
         email: 'invalid-email',
-        password: '1234'
+        password: 'Admin@2024!'
       };
 
       const { error } = loginSchema.validate(invalidData);
@@ -38,7 +38,7 @@ describe('Joi Validation Schemas', () => {
     it('deve rejeitar email vazio', () => {
       const invalidData = {
         email: '',
-        password: '1234'
+        password: 'Admin@2024!'
       };
 
       const { error } = loginSchema.validate(invalidData);
@@ -49,7 +49,7 @@ describe('Joi Validation Schemas', () => {
 
     it('deve rejeitar email ausente', () => {
       const invalidData = {
-        password: '1234'
+        password: 'Admin@2024!'
       };
 
       const { error } = loginSchema.validate(invalidData);

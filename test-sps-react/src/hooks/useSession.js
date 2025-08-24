@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { isTokenNearExpiry, getTokenTimeRemaining, isRefreshingToken } from '../services/httpInterceptor';
-import { logSecurityEvent } from '../middleware/security';
+import { logSecurityEvent, secureStorage } from '../middleware/security';
 
 const useSession = () => {
-  const { user, logout, refreshToken, isRefreshing: authRefreshing, refreshError } = useAuth();
+  // Sempre chamar os hooks no topo do componente
+  const authContext = useAuth();
+  
   const [sessionWarning, setSessionWarning] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(null);
   const [isInactive, setIsInactive] = useState(false);
@@ -19,7 +21,16 @@ const useSession = () => {
   const WARNING_THRESHOLD = 5 * 60 * 1000;
   const SESSION_CHECK_INTERVAL = 30000;
 
+  // Extrair dados do contexto de autenticação
+  const user = authContext && authContext.user ? authContext.user : null;
+  const logout = authContext && authContext.logout ? authContext.logout : () => {};
+  const refreshToken = authContext && authContext.refreshToken ? authContext.refreshToken : () => Promise.resolve();
+  const authRefreshing = authContext && authContext.isRefreshing ? authContext.isRefreshing : false;
+  const refreshError = authContext && authContext.refreshError ? authContext.refreshError : null;
+
   const updateActivity = useCallback(() => {
+    if (!user) return; // Não fazer nada se não há usuário
+    
     lastActivityRef.current = Date.now();
     setIsInactive(false);
     setSessionError(null);
@@ -30,17 +41,32 @@ const useSession = () => {
     
     activityTimeoutRef.current = setTimeout(() => {
       setIsInactive(true);
-      logSecurityEvent('user_inactive', { 
-        userId: user?.id,
-        userEmail: user?.email 
-      });
+      // Verificar se logSecurityEvent está disponível antes de chamá-la
+      if (typeof logSecurityEvent === 'function') {
+        logSecurityEvent('user_inactive', { 
+          userId: user?.id,
+          userEmail: user?.email 
+        });
+      }
     }, SESSION_TIMEOUT);
   }, [user, SESSION_TIMEOUT]);
 
   const checkTokenExpiry = useCallback(() => {
-    if (!user) return;
+    if (!user) {
+      // Limpar estados quando não há usuário
+      setSessionWarning(false);
+      setTimeRemaining(null);
+      setSessionError(null);
+      return;
+    }
 
     try {
+      // Verificar se a função getTokenTimeRemaining está disponível antes de chamá-la
+      if (typeof getTokenTimeRemaining !== 'function') {
+        console.warn('getTokenTimeRemaining não está disponível');
+        return;
+      }
+
       const remaining = getTokenTimeRemaining();
       setTimeRemaining(remaining);
 
@@ -52,10 +78,13 @@ const useSession = () => {
       }
 
       if (remaining <= 0) {
-        logSecurityEvent('session_expired', { 
-          userId: user.id,
-          userEmail: user.email 
-        });
+        // Verificar se logSecurityEvent está disponível antes de chamá-la
+        if (typeof logSecurityEvent === 'function') {
+          logSecurityEvent('session_expired', { 
+            userId: user?.id || 'unknown',
+            userEmail: user?.email || 'unknown'
+          });
+        }
         setSessionError('Sessão expirada');
         logout();
         return;
@@ -63,71 +92,97 @@ const useSession = () => {
 
       if (remaining <= WARNING_THRESHOLD) {
         setSessionWarning(true);
-        logSecurityEvent('session_warning', { 
-          userId: user.id,
-          userEmail: user.email,
-          timeRemaining: remaining 
-        });
+        // Verificar se logSecurityEvent está disponível antes de chamá-la
+        if (typeof logSecurityEvent === 'function') {
+          logSecurityEvent('session_warning', { 
+            userId: user?.id || 'unknown',
+            userEmail: user?.email || 'unknown',
+            timeRemaining: remaining 
+          });
+        }
       }
 
       if (remaining > WARNING_THRESHOLD) {
         const warningTime = remaining - WARNING_THRESHOLD;
         warningTimeoutRef.current = setTimeout(() => {
           setSessionWarning(true);
-          logSecurityEvent('session_warning', { 
-            userId: user.id,
-            userEmail: user.email,
-            timeRemaining: WARNING_THRESHOLD 
-          });
+          // Verificar se logSecurityEvent está disponível antes de chamá-la
+          if (typeof logSecurityEvent === 'function') {
+            logSecurityEvent('session_warning', { 
+              userId: user?.id || 'unknown',
+              userEmail: user?.email || 'unknown',
+              timeRemaining: WARNING_THRESHOLD 
+            });
+          }
         }, warningTime);
       }
 
       expiryTimeoutRef.current = setTimeout(() => {
-        logSecurityEvent('session_expired', { 
-          userId: user.id,
-          userEmail: user.email 
-        });
+        // Verificar se logSecurityEvent está disponível antes de chamá-la
+        if (typeof logSecurityEvent === 'function') {
+          logSecurityEvent('session_expired', { 
+            userId: user?.id || 'unknown',
+            userEmail: user?.email || 'unknown'
+          });
+        }
         setSessionError('Sessão expirada');
         logout();
       }, remaining);
     } catch (error) {
       console.error('Erro ao verificar expiração do token:', error);
       setSessionError('Erro ao verificar sessão');
-      logSecurityEvent('token_check_error', { 
-        userId: user?.id,
-        error: error.message 
-      });
+      // Verificar se logSecurityEvent está disponível antes de chamá-la
+      if (typeof logSecurityEvent === 'function') {
+        logSecurityEvent('token_check_error', { 
+          userId: user?.id,
+          error: error.message 
+        });
+      }
     }
   }, [user, logout, WARNING_THRESHOLD]);
 
   const renewSession = useCallback(async () => {
-    if (!user || isRefreshingToken()) return false;
+    if (!user) return false;
+
+    // Verificar se a função isRefreshingToken está disponível antes de chamá-la
+    if (typeof isRefreshingToken === 'function') {
+      if (isRefreshingToken()) return false;
+    }
 
     try {
       setSessionError(null);
-      logSecurityEvent('session_renewal_attempt', { 
-        userId: user.id,
-        userEmail: user.email 
-      });
+      // Verificar se logSecurityEvent está disponível antes de chamá-la
+      if (typeof logSecurityEvent === 'function') {
+        logSecurityEvent('session_renewal_attempt', { 
+          userId: user?.id || 'unknown',
+          userEmail: user?.email || 'unknown'
+        });
+      }
 
       await refreshToken();
       setSessionWarning(false);
       updateActivity();
       checkTokenExpiry();
 
-      logSecurityEvent('session_renewal_success', { 
-        userId: user.id,
-        userEmail: user.email 
-      });
+      // Verificar se logSecurityEvent está disponível antes de chamá-la
+      if (typeof logSecurityEvent === 'function') {
+        logSecurityEvent('session_renewal_success', { 
+          userId: user?.id || 'unknown',
+          userEmail: user?.email || 'unknown'
+        });
+      }
 
       return true;
     } catch (error) {
       setSessionError(error.message);
-      logSecurityEvent('session_renewal_failed', { 
-        userId: user.id,
-        userEmail: user.email,
-        error: error.message 
-      });
+      // Verificar se logSecurityEvent está disponível antes de chamá-la
+      if (typeof logSecurityEvent === 'function') {
+        logSecurityEvent('session_renewal_failed', { 
+          userId: user?.id || 'unknown',
+          userEmail: user?.email || 'unknown',
+          error: error.message 
+        });
+      }
       
       logout();
       return false;
@@ -139,16 +194,28 @@ const useSession = () => {
     setSessionWarning(false);
     setSessionError(null);
     
-    logSecurityEvent('session_extended', { 
-      userId: user?.id,
-      userEmail: user?.email 
-    });
+    // Verificar se logSecurityEvent está disponível antes de chamá-la
+    if (typeof logSecurityEvent === 'function') {
+      logSecurityEvent('session_extended', { 
+        userId: user?.id,
+        userEmail: user?.email 
+      });
+    }
   }, [user, updateActivity]);
 
   const handleStorageChange = useCallback((event) => {
     if (event.key === 'token' || event.key === 'user') {
-      const currentUser = JSON.parse(localStorage.getItem('user') || 'null');
-      const currentToken = localStorage.getItem('token');
+      // Verificar se secureStorage está disponível
+      let currentUser, currentToken;
+      
+      if (secureStorage && typeof secureStorage.getItem === 'function') {
+        currentUser = secureStorage.getItem('user');
+        currentToken = secureStorage.getItem('token');
+      } else {
+        // Fallback para localStorage
+        currentUser = localStorage.getItem('user');
+        currentToken = localStorage.getItem('token');
+      }
       
       if (!currentToken || !currentUser) {
         setSessionWarning(false);
@@ -163,22 +230,39 @@ const useSession = () => {
   }, [user, checkTokenExpiry]);
 
   const handleLogoutEvent = useCallback((event) => {
-    if (event.detail && event.detail.userId === user?.id) {
-      logSecurityEvent('logout_from_other_tab', { 
-        userId: user.id,
-        userEmail: user.email,
-        timestamp: event.detail.timestamp 
-      });
+    // Verificar se o evento tem detalhes e se o usuário ainda existe
+    if (event.detail && user && event.detail.userId === user.id) {
+      // Verificar se logSecurityEvent está disponível antes de chamá-la
+      if (typeof logSecurityEvent === 'function') {
+        logSecurityEvent('logout_from_other_tab', { 
+          userId: user.id,
+          userEmail: user.email,
+          timestamp: event.detail.timestamp 
+        });
+      }
       
       setSessionWarning(false);
       setTimeRemaining(null);
       setIsInactive(false);
       setSessionError('Sessão encerrada em outra aba');
+    } else if (event.detail && !user) {
+      // Caso o usuário já tenha sido limpo, apenas limpar os estados
+      setSessionWarning(false);
+      setTimeRemaining(null);
+      setIsInactive(false);
+      setSessionError('Sessão encerrada');
     }
   }, [user]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      // Limpar timeouts quando não há usuário
+      if (activityTimeoutRef.current) {
+        clearTimeout(activityTimeoutRef.current);
+        activityTimeoutRef.current = null;
+      }
+      return;
+    }
 
     const events = [
       'mousedown', 'mousemove', 'keypress', 'scroll', 
@@ -201,13 +285,27 @@ const useSession = () => {
   }, [user, updateActivity]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      // Limpar intervalos quando não há usuário
+      if (sessionCheckIntervalRef.current) {
+        clearInterval(sessionCheckIntervalRef.current);
+        sessionCheckIntervalRef.current = null;
+      }
+      return;
+    }
 
     sessionCheckIntervalRef.current = setInterval(() => {
       checkTokenExpiry();
       
-      if (isTokenNearExpiry()) {
-        setSessionWarning(true);
+      // Verificar se a função isTokenNearExpiry está disponível antes de chamá-la
+      if (typeof isTokenNearExpiry === 'function') {
+        try {
+          if (isTokenNearExpiry()) {
+            setSessionWarning(true);
+          }
+        } catch (error) {
+          console.error('Erro ao verificar se token está próximo da expiração:', error);
+        }
       }
     }, SESSION_CHECK_INTERVAL);
 
@@ -269,6 +367,41 @@ const useSession = () => {
     }
   }, [refreshError]);
 
+  // Retornar valores padrão se não há contexto ou usuário
+  if (!authContext) {
+    return {
+      sessionWarning: false,
+      timeRemaining: null,
+      isInactive: false,
+      isSessionActive: false,
+      renewSession: () => Promise.resolve(false),
+      extendSession: () => {},
+      formatTimeRemaining: () => '',
+      isNearExpiry: false,
+      isExpired: false,
+      needsRenewal: false,
+      sessionError: null,
+      isRefreshing: false
+    };
+  }
+  
+  if (!user) {
+    return {
+      sessionWarning: false,
+      timeRemaining: null,
+      isInactive: false,
+      isSessionActive: false,
+      renewSession: () => Promise.resolve(false),
+      extendSession: () => {},
+      formatTimeRemaining: () => '',
+      isNearExpiry: false,
+      isExpired: false,
+      needsRenewal: false,
+      sessionError: null,
+      isRefreshing: false
+    };
+  }
+
   return {
     sessionWarning,
     timeRemaining,
@@ -285,10 +418,10 @@ const useSession = () => {
     warningThreshold: WARNING_THRESHOLD,
     lastActivity: lastActivityRef.current,
     
-    isNearExpiry: isTokenNearExpiry(),
+    isNearExpiry: typeof isTokenNearExpiry === 'function' ? isTokenNearExpiry() : false,
     isExpired: timeRemaining <= 0,
     needsRenewal: sessionWarning && timeRemaining > 0,
-    isRefreshing: authRefreshing || isRefreshingToken()
+    isRefreshing: authRefreshing || (typeof isRefreshingToken === 'function' ? isRefreshingToken() : false)
   };
 };
 

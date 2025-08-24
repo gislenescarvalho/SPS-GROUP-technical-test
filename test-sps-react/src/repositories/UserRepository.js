@@ -46,6 +46,7 @@ class UserRepository {
    * Atualizar usuário
    */
   async update(id, userData) {
+    console.log('🔍 UserRepository.update chamado:', { id, userData });
     const response = await api.put(config.endpoints.users.update(id), userData);
     return response.data;
   }
@@ -63,14 +64,15 @@ class UserRepository {
    */
   async checkEmailExists(email, excludeUserId = null) {
     try {
-      const users = await this.findAll();
+      const result = await this.findAll();
+      const users = result.users || result; // Suportar tanto {users: [...]} quanto [...]
       const existingUser = users.find(user => 
         user.email.toLowerCase() === email.toLowerCase() && 
         user.id !== excludeUserId
       );
       return !!existingUser;
     } catch (error) {
-      console.error('Erro ao verificar email:', error);
+      console.error('❌ Erro ao verificar email:', error);
       return false;
     }
   }
@@ -88,7 +90,8 @@ class UserRepository {
     
     const url = `${config.endpoints.users.list}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
     const response = await api.get(url);
-    return response.data;
+    const result = response.data;
+    return result.users || result; // Suportar tanto {users: [...]} quanto [...]
   }
 
   /**

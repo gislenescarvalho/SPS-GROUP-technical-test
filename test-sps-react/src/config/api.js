@@ -1,7 +1,9 @@
 const config = {
-  baseURL: process.env.REACT_APP_SERVER_URL || 'http://localhost:3000',
+  baseURL: '',  // Usar proxy em desenvolvimento
   
   timeout: parseInt(process.env.REACT_APP_API_TIMEOUT) || 10000,
+  
+  apiVersion: process.env.REACT_APP_API_VERSION || 'v1',
   
   cache: {
     enabled: process.env.REACT_APP_CACHE_ENABLED !== 'false',
@@ -15,23 +17,23 @@ const config = {
   
   endpoints: {
     auth: {
-      login: '/auth/login',
-      logout: '/auth/logout',
-      refresh: '/auth/refresh',
-      stats: '/auth/stats',
+      login: '/api/auth/login',
+      logout: '/api/auth/logout',
+      refresh: '/api/auth/refresh',
+      stats: '/api/auth/stats',
+      changePassword: '/api/auth/change-password',
+      requestReset: '/api/auth/request-reset',
+      resetPassword: '/api/auth/reset-password',
     },
     users: {
-      list: '/users',
-      create: '/users',
-      get: (id) => `/users/${id}`,
-      update: (id) => `/users/${id}`,
-      delete: (id) => `/users/${id}`,
-    },
-    metrics: {
-      get: '/metrics',
+      list: '/api/users',
+      create: '/api/users',
+      get: (id) => `/api/users/${id}`,
+      update: (id) => `/api/users/${id}`,
+      delete: (id) => `/api/users/${id}`,
     },
     docs: {
-      swagger: '/docs',
+      swagger: '/api/docs',
     },
   },
   

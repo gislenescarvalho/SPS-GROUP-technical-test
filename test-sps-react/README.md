@@ -32,7 +32,7 @@ npm start
 ## 📱 Como Usar
 
 1. Acesse `http://localhost:3001`
-2. Login: `admin@spsgroup.com.br` / `1234`
+2. Login: `admin@spsgroup.com.br` / `Admin@2024!`
 3. Gerencie usuários na página principal
 4. Use o painel ♿ para acessibilidade
 

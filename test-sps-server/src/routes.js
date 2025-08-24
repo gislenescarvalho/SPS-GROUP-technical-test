@@ -1,7 +1,6 @@
 const { Router } = require('express');
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
-const metricsRoutes = require('./routes/metrics');
 const auditRoutes = require('./routes/audit');
 const versionRoutes = require('./routes/version');
 const docsRoutes = require('./routes/docs');
@@ -16,7 +15,6 @@ routes.use('/docs', docsRoutes);
 
 routes.use('/auth', authRoutes);
 routes.use('/users', userRoutes);
-routes.use('/metrics', metricsRoutes);
 
 routes.use('/audit', 
   APIVersioning.requireFeature('audit_logs'),
@@ -42,7 +40,6 @@ routes.get('/', (req, res) => {
     endpoints: {
       auth: '/auth',
       users: '/users',
-      metrics: '/metrics',
       audit: '/audit (V2)',
       version: '/version',
       docs: '/docs'

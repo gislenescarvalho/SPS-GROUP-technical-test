@@ -12,7 +12,7 @@ const axios = require('axios');
 const BASE_URL = 'http://localhost:3000';
 const TEST_USER = {
   email: 'admin@spsgroup.com.br',
-  password: '1234'
+  password: 'Admin@2024!'
 };
 
 class IntegrationTester {
@@ -28,7 +28,6 @@ class IntegrationTester {
       await this.testAuth();
       await this.testSecurity();
       await this.testUsers();
-      await this.testMetrics();
       await this.printResults();
     } catch (error) {
       console.error('❌ Erro durante os testes:', error.message);
@@ -178,41 +177,7 @@ class IntegrationTester {
     }
   }
 
-  async testMetrics() {
-    console.log('📊 Testando endpoints de métricas...');
-    
-    if (!this.token) {
-      this.addResult('Metrics', 'SKIP', 'Token não disponível');
-      return;
-    }
 
-    const headers = { Authorization: `Bearer ${this.token}` };
-
-    try {
-      // Teste de métricas gerais
-      const metricsResponse = await axios.get(`${BASE_URL}/metrics`, { headers });
-      this.addResult('General Metrics', 'PASS', 'Métricas gerais obtidas');
-
-      // Teste de métricas de performance
-      const perfResponse = await axios.get(`${BASE_URL}/metrics/performance`, { headers });
-      this.addResult('Performance Metrics', 'PASS', 'Métricas de performance obtidas');
-
-      // Teste de métricas de usuários
-      const userMetricsResponse = await axios.get(`${BASE_URL}/metrics/users`, { headers });
-      this.addResult('User Metrics', 'PASS', 'Métricas de usuários obtidas');
-
-      // Teste de métricas de autenticação
-      const authMetricsResponse = await axios.get(`${BASE_URL}/metrics/auth`, { headers });
-      this.addResult('Auth Metrics', 'PASS', 'Métricas de autenticação obtidas');
-
-      // Teste de métricas de cache
-      const cacheMetricsResponse = await axios.get(`${BASE_URL}/metrics/cache`, { headers });
-      this.addResult('Cache Metrics', 'PASS', 'Métricas de cache obtidas');
-
-    } catch (error) {
-      this.addResult('Metrics', 'FAIL', error.response?.data?.message || error.message);
-    }
-  }
 
   addResult(test, status, message) {
     this.testResults.push({ test, status, message });

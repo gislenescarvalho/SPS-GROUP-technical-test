@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { useToastContext } from "../contexts/ToastContext";
 import UserService from "../services/UserService";
 import useApi from "../hooks/useApi";
 import Navbar from "../components/Navbar";
 import AccessibilityPanel from "../components/AccessibilityPanel";
 import Modal from "../components/Modal";
 import FormField from "../components/FormField";
+import Loader from "../components/Loader";
+import LoaderInline from "../components/LoaderInline";
+import PasswordStrengthIndicator from "../components/PasswordStrengthIndicator";
 import { createUserSchema, validateData } from "../validations/userValidations";
 
 function Users() {
@@ -23,7 +27,8 @@ function Users() {
     name: "",
     email: "",
     type: "user",
-    password: ""
+    password: "",
+    confirmPassword: ""
   });
   const [creating, setCreating] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
@@ -36,7 +41,8 @@ function Users() {
   const [modalMessage, setModalMessage] = useState("");
 
   // Hook para gerenciar chamadas da API
-  const { loading, error, execute, clearError } = useApi();
+  const { loading, error, execute, clearError } = useApi((params) => UserService.list(params));
+  const { showSuccess, showError } = useToastContext();
 
   useEffect(() => {
     loadUsers();
@@ -51,7 +57,9 @@ function Users() {
         search: searchTerm
       };
       
-      const data = await execute(UserService.list, params);
+
+      
+      const data = await execute(params);
       
       // Atualizar estado com dados da paginação
       setUsers(data.users || data);
@@ -64,6 +72,8 @@ function Users() {
       }
     } catch (error) {
       console.error('Erro ao carregar usuários:', error);
+      
+
     }
   };
 
@@ -89,14 +99,12 @@ function Users() {
     
     try {
       await UserService.create(newUser);
-      setNewUser({ name: "", email: "", type: "user", password: "" });
+      setNewUser({ name: "", email: "", type: "user", password: "", confirmPassword: "" });
       setShowCreateForm(false);
-      setModalMessage("Usuário criado com sucesso!");
-      setShowSuccessModal(true);
+      showSuccess("Usuário criado com sucesso!");
       loadUsers();
     } catch (error) {
-      setModalMessage(error.message);
-      setShowErrorModal(true);
+      showError(error.message || "Erro ao criar usuário");
     } finally {
       setCreating(false);
     }
@@ -127,14 +135,7 @@ function Users() {
     return (
       <div>
         <Navbar />
-        <div style={{ 
-          textAlign: "center", 
-          padding: "var(--spacing-xl)",
-          color: "var(--text-secondary)",
-          fontSize: "var(--font-size-large)"
-        }}>
-          Carregando usuários...
-        </div>
+        <Loader text="Carregando usuários..." height="calc(100vh - 80px)" />
         <AccessibilityPanel />
       </div>
     );
@@ -145,11 +146,23 @@ function Users() {
     return (
       <div>
         <Navbar />
-        <div className="container" style={{ padding: "var(--spacing-xl) 0" }}>
+        <div className="container" style={{ 
+          padding: "var(--spacing-xl) var(--spacing-xl)",
+          minHeight: "calc(100vh - 80px)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center"
+        }}>
           <div style={{ 
             textAlign: "center", 
             padding: "var(--spacing-xxl)",
-            color: "var(--text-secondary)"
+            color: "var(--text-secondary)",
+            backgroundColor: "var(--background-color)",
+            borderRadius: "12px",
+            border: "1px solid var(--border-color)",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+            maxWidth: "500px",
+            width: "100%"
           }}>
             <div style={{
               fontSize: "64px",
@@ -169,7 +182,8 @@ function Users() {
               fontSize: "var(--font-size-large)",
               marginBottom: "var(--spacing-xl)",
               maxWidth: "500px",
-              margin: "0 auto var(--spacing-xl) auto"
+              margin: "0 auto var(--spacing-xl) auto",
+              lineHeight: "1.6"
             }}>
               Comece criando o primeiro usuário do sistema para gerenciar sua equipe.
             </p>
@@ -212,19 +226,24 @@ function Users() {
   return (
     <div>
       <Navbar />
-      <div className="container" style={{ padding: "var(--spacing-xl) 0" }}>
+      <div className="container" style={{ 
+        padding: "var(--spacing-xl) var(--spacing-xl)",
+        minHeight: "calc(100vh - 80px)"
+      }}>
         <div style={{ 
           display: "flex", 
           justifyContent: "space-between", 
           alignItems: "center", 
           marginBottom: "var(--spacing-xl)",
           flexWrap: "wrap",
-          gap: "var(--spacing-md)"
+          gap: "var(--spacing-md)",
+          padding: "0 var(--spacing-sm)"
         }}>
           <h1 style={{ 
             color: "var(--text-color)",
             fontSize: "var(--font-size-xlarge)",
-            margin: 0
+            margin: 0,
+            flex: "1 1 auto"
           }}>
             Gerenciamento de Usuários
           </h1>
@@ -240,7 +259,8 @@ function Users() {
               fontSize: "var(--font-size-medium)",
               transition: "background-color 0.3s ease",
               minHeight: "44px",
-              whiteSpace: "nowrap"
+              whiteSpace: "nowrap",
+              flexShrink: 0
             }}
             aria-label={showCreateForm ? "Cancelar criação de usuário" : "Criar novo usuário"}
           >
@@ -255,7 +275,11 @@ function Users() {
           alignItems: "center",
           marginBottom: "var(--spacing-lg)",
           flexWrap: "wrap",
-          gap: "var(--spacing-md)"
+          gap: "var(--spacing-md)",
+          padding: "var(--spacing-lg)",
+          backgroundColor: "var(--background-secondary)",
+          borderRadius: "8px",
+          border: "1px solid var(--border-color)"
         }}>
           {/* Busca */}
           <div style={{
@@ -269,11 +293,12 @@ function Users() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               style={{
-                padding: "var(--spacing-sm)",
+                padding: "var(--spacing-sm) var(--spacing-md)",
                 border: "1px solid var(--border-color)",
                 borderRadius: "4px",
                 fontSize: "var(--font-size-medium)",
-                minWidth: "250px"
+                minWidth: "250px",
+                backgroundColor: "var(--background-color)"
               }}
               aria-label="Campo de busca de usuários"
             />
@@ -283,10 +308,15 @@ function Users() {
                 backgroundColor: "var(--primary-color)",
                 color: "white",
                 border: "none",
-                padding: "var(--spacing-sm)",
+                padding: "var(--spacing-sm) var(--spacing-md)",
                 borderRadius: "4px",
                 cursor: "pointer",
-                fontSize: "var(--font-size-medium)"
+                fontSize: "var(--font-size-medium)",
+                minHeight: "44px",
+                minWidth: "44px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center"
               }}
               aria-label="Buscar usuários"
             >
@@ -300,7 +330,11 @@ function Users() {
             alignItems: "center",
             gap: "var(--spacing-md)",
             fontSize: "var(--font-size-small)",
-            color: "var(--text-secondary)"
+            color: "var(--text-secondary)",
+            padding: "var(--spacing-sm) var(--spacing-md)",
+            backgroundColor: "var(--background-color)",
+            borderRadius: "4px",
+            border: "1px solid var(--border-color)"
           }}>
             <span>
               Mostrando {((pagination.page - 1) * pagination.limit) + 1} a {Math.min(pagination.page * pagination.limit, pagination.total)} de {pagination.total} usuários
@@ -312,12 +346,21 @@ function Users() {
           <div style={{
             backgroundColor: "var(--danger-color)",
             color: "white",
-            padding: "var(--spacing-md)",
-            borderRadius: "4px",
-            marginBottom: "var(--spacing-md)",
-            fontSize: "var(--font-size-medium)"
+            padding: "var(--spacing-md) var(--spacing-lg)",
+            borderRadius: "8px",
+            marginBottom: "var(--spacing-lg)",
+            fontSize: "var(--font-size-medium)",
+            border: "1px solid var(--danger-color)",
+            boxShadow: "0 2px 4px rgba(220, 53, 69, 0.2)"
           }}>
-            {error}
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "var(--spacing-sm)"
+            }}>
+              <span style={{ fontSize: "var(--font-size-large)" }}>⚠️</span>
+              <span>{error}</span>
+            </div>
           </div>
         )}
 
@@ -327,12 +370,15 @@ function Users() {
             padding: "var(--spacing-xl)",
             borderRadius: "8px",
             marginBottom: "var(--spacing-xl)",
-            border: "1px solid var(--border-color)"
+            border: "1px solid var(--border-color)",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
           }}>
             <h3 style={{ 
-              marginBottom: "var(--spacing-md)",
+              marginBottom: "var(--spacing-lg)",
               color: "var(--text-color)",
-              fontSize: "var(--font-size-large)"
+              fontSize: "var(--font-size-large)",
+              borderBottom: "2px solid var(--primary-color)",
+              paddingBottom: "var(--spacing-sm)"
             }}>
               Novo Usuário
             </h3>
@@ -340,8 +386,8 @@ function Users() {
               <div style={{ 
                 display: "grid", 
                 gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", 
-                gap: "var(--spacing-md)", 
-                marginBottom: "var(--spacing-md)" 
+                gap: "var(--spacing-lg)", 
+                marginBottom: "var(--spacing-lg)" 
               }}>
                 <FormField
                   label="Nome"
@@ -370,8 +416,8 @@ function Users() {
               <div style={{ 
                 display: "grid", 
                 gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", 
-                gap: "var(--spacing-md)", 
-                marginBottom: "var(--spacing-md)" 
+                gap: "var(--spacing-lg)", 
+                marginBottom: "var(--spacing-lg)" 
               }}>
                 <FormField
                   label="Tipo"
@@ -394,15 +440,37 @@ function Users() {
                   onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
                   error={validationErrors.password}
                   required
-                  minLength={4}
+                  minLength={8}
                   maxLength={50}
-                  placeholder="Mínimo 4 caracteres"
+                  placeholder="Mínimo 8 caracteres"
+                />
+                <FormField
+                  label="Confirmar Senha"
+                  type="password"
+                  name="confirmPassword"
+                  value={newUser.confirmPassword}
+                  onChange={(e) => setNewUser({ ...newUser, confirmPassword: e.target.value })}
+                  error={validationErrors.confirmPassword}
+                  required
+                  minLength={8}
+                  maxLength={50}
+                  placeholder="Digite a senha novamente"
                 />
               </div>
+              
+              <div style={{
+                marginBottom: "var(--spacing-lg)",
+                padding: "var(--spacing-md)",         
+              }}>
+                <PasswordStrengthIndicator password={newUser.password} />
+              </div>
+              
               <div style={{
                 display: "flex",
                 gap: "var(--spacing-md)",
-                justifyContent: "flex-end"
+                justifyContent: "flex-end",
+                paddingTop: "var(--spacing-md)",
+                borderTop: "1px solid var(--border-color)"
               }}>
                 <button
                   type="submit"
@@ -420,7 +488,7 @@ function Users() {
                   }}
                   aria-label={creating ? "Criando usuário..." : "Criar usuário"}
                 >
-                  {creating ? "Criando..." : "Criar usuário"}
+                  {creating ? <LoaderInline text="Criando..." /> : "Criar usuário"}
                 </button>
               </div>
             </form>
@@ -432,14 +500,15 @@ function Users() {
           borderRadius: "8px",
           boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
           overflow: "hidden",
-          border: "1px solid var(--border-color)"
+          border: "1px solid var(--border-color)",
+          padding: "var(--spacing-lg)"
         }}>
           <div className="table-responsive" style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "600px" }}>
               <thead>
                 <tr style={{ backgroundColor: "var(--background-secondary)" }}>
                   <th style={{ 
-                    padding: "var(--spacing-md)", 
+                    padding: "var(--spacing-md) var(--spacing-lg)", 
                     textAlign: "left", 
                     borderBottom: "1px solid var(--border-color)",
                     color: "var(--text-color)",
@@ -449,7 +518,7 @@ function Users() {
                     ID
                   </th>
                   <th style={{ 
-                    padding: "var(--spacing-md)", 
+                    padding: "var(--spacing-md) var(--spacing-lg)", 
                     textAlign: "left", 
                     borderBottom: "1px solid var(--border-color)",
                     color: "var(--text-color)",
@@ -458,7 +527,7 @@ function Users() {
                     Nome
                   </th>
                   <th style={{ 
-                    padding: "var(--spacing-md)", 
+                    padding: "var(--spacing-md) var(--spacing-lg)", 
                     textAlign: "left", 
                     borderBottom: "1px solid var(--border-color)",
                     color: "var(--text-color)",
@@ -467,7 +536,7 @@ function Users() {
                     Email
                   </th>
                   <th style={{ 
-                    padding: "var(--spacing-md)", 
+                    padding: "var(--spacing-md) var(--spacing-lg)", 
                     textAlign: "left", 
                     borderBottom: "1px solid var(--border-color)",
                     color: "var(--text-color)",
@@ -477,7 +546,7 @@ function Users() {
                     Tipo
                   </th>
                   <th style={{ 
-                    padding: "var(--spacing-md)", 
+                    padding: "var(--spacing-md) var(--spacing-lg)", 
                     textAlign: "left", 
                     borderBottom: "1px solid var(--border-color)",
                     color: "var(--text-color)",
@@ -492,7 +561,7 @@ function Users() {
                 {users.map((user) => (
                   <tr key={user.id} style={{ borderBottom: "1px solid var(--border-color)" }}>
                     <td style={{ 
-                      padding: "var(--spacing-md)",
+                      padding: "var(--spacing-md) var(--spacing-lg)",
                       color: "var(--text-color)",
                       fontSize: "var(--font-size-medium)",
                       whiteSpace: "nowrap"
@@ -500,20 +569,20 @@ function Users() {
                       {user.id}
                     </td>
                     <td style={{ 
-                      padding: "var(--spacing-md)",
+                      padding: "var(--spacing-md) var(--spacing-lg)",
                       color: "var(--text-color)",
                       fontSize: "var(--font-size-medium)"
                     }}>
                       {user.name}
                     </td>
                     <td style={{ 
-                      padding: "var(--spacing-md)",
+                      padding: "var(--spacing-md) var(--spacing-lg)",
                       color: "var(--text-color)",
                       fontSize: "var(--font-size-medium)"
                     }}>
                       {user.email}
                     </td>
-                    <td style={{ padding: "var(--spacing-md)" }}>
+                    <td style={{ padding: "var(--spacing-md) var(--spacing-lg)" }}>
                       <span style={{
                         backgroundColor: user.type === "admin" ? "var(--danger-color)" : "var(--success-color)",
                         color: "white",
@@ -526,7 +595,7 @@ function Users() {
                       </span>
                     </td>
                     <td style={{ 
-                      padding: "var(--spacing-md)",
+                      padding: "var(--spacing-md) var(--spacing-lg)",
                       whiteSpace: "nowrap"
                     }}>
                       <div style={{
@@ -589,9 +658,11 @@ function Users() {
             alignItems: "center",
             gap: "var(--spacing-sm)",
             marginTop: "var(--spacing-lg)",
-            padding: "var(--spacing-md)",
+            padding: "var(--spacing-lg)",
             backgroundColor: "var(--background-secondary)",
-            borderRadius: "8px"
+            borderRadius: "8px",
+            border: "1px solid var(--border-color)",
+            boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
           }}>
             <button
               onClick={() => setPagination(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
@@ -604,7 +675,8 @@ function Users() {
                 borderRadius: "4px",
                 cursor: pagination.page === 1 ? "not-allowed" : "pointer",
                 fontSize: "var(--font-size-medium)",
-                transition: "background-color 0.3s ease"
+                transition: "background-color 0.3s ease",
+                minHeight: "44px"
               }}
               aria-label="Página anterior"
             >
@@ -613,7 +685,8 @@ function Users() {
 
             <div style={{
               display: "flex",
-              gap: "var(--spacing-xs)"
+              gap: "var(--spacing-xs)",
+              padding: "0 var(--spacing-md)"
             }}>
               {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
                 const pageNum = i + 1;
@@ -625,11 +698,12 @@ function Users() {
                       backgroundColor: pagination.page === pageNum ? "var(--primary-color)" : "var(--background-color)",
                       color: pagination.page === pageNum ? "white" : "var(--text-color)",
                       border: "1px solid var(--border-color)",
-                      padding: "var(--spacing-sm)",
+                      padding: "var(--spacing-sm) var(--spacing-md)",
                       borderRadius: "4px",
                       cursor: "pointer",
                       fontSize: "var(--font-size-small)",
-                      minWidth: "40px",
+                      minWidth: "44px",
+                      minHeight: "44px",
                       transition: "all 0.3s ease"
                     }}
                     aria-label={`Página ${pageNum}`}
@@ -651,7 +725,8 @@ function Users() {
                 borderRadius: "4px",
                 cursor: pagination.page === pagination.totalPages ? "not-allowed" : "pointer",
                 fontSize: "var(--font-size-medium)",
-                transition: "background-color 0.3s ease"
+                transition: "background-color 0.3s ease",
+                minHeight: "44px"
               }}
               aria-label="Próxima página"
             >

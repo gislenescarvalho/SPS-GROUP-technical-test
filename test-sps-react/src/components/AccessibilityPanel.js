@@ -3,28 +3,19 @@ import { useAccessibility } from "../contexts/AccessibilityContext";
 
 function AccessibilityPanel() {
   const [isOpen, setIsOpen] = useState(false);
+  
+  // Sempre chamar o hook no topo do componente
+  const accessibilityContext = useAccessibility();
+
+  // Verificar se o contexto tem as propriedades necessárias
+  if (!accessibilityContext || typeof accessibilityContext !== 'object') {
+    return null;
+  }
+
   const {
     theme,
-    fontSize,
-    highContrast,
-    reducedMotion,
     toggleTheme,
-    increaseFontSize,
-    decreaseFontSize,
-    toggleHighContrast,
-    toggleReducedMotion,
-  } = useAccessibility();
-
-  const resetFontSize = () => {
-    // Reset para tamanho médio
-    const sizes = ['small', 'medium', 'large', 'xlarge'];
-    const currentIndex = sizes.indexOf(fontSize);
-    if (currentIndex !== 1) { // Se não estiver no médio
-      // Forçar reset para médio
-      const event = new CustomEvent('resetFontSize');
-      window.dispatchEvent(event);
-    }
-  };
+  } = accessibilityContext;
 
   const togglePanel = () => {
     setIsOpen(!isOpen);
@@ -66,14 +57,10 @@ function AccessibilityPanel() {
           justifyContent: "center"
         }}
         onMouseEnter={(e) => {
-          if (!reducedMotion) {
-            e.target.style.transform = "scale(1.1)";
-          }
+          e.target.style.transform = "scale(1.1)";
         }}
         onMouseLeave={(e) => {
-          if (!reducedMotion) {
-            e.target.style.transform = "scale(1)";
-          }
+          e.target.style.transform = "scale(1)";
         }}
       >
         ♿
@@ -157,155 +144,6 @@ function AccessibilityPanel() {
             >
               {theme === "light" ? "🌙 Modo Escuro" : "☀️ Modo Claro"}
             </button>
-          </div>
-
-          {/* Tamanho da fonte */}
-          <div style={{ marginBottom: "var(--spacing-xl)" }}>
-            <h3 style={{ 
-              marginBottom: "var(--spacing-sm)", 
-              color: "var(--text-color)",
-              fontSize: "var(--font-size-medium)"
-            }}>
-              Tamanho da Fonte
-            </h3>
-            <div style={{ 
-              display: "flex", 
-              gap: "var(--spacing-sm)", 
-              marginBottom: "var(--spacing-sm)",
-              flexWrap: "wrap"
-            }}>
-              <button
-                onClick={decreaseFontSize}
-                aria-label="Diminuir tamanho da fonte"
-                disabled={fontSize === "small"}
-                style={{
-                  padding: "var(--spacing-sm) var(--spacing-md)",
-                  backgroundColor: fontSize === "small" ? "var(--disabled-color)" : "var(--secondary-color)",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "4px",
-                  cursor: fontSize === "small" ? "not-allowed" : "pointer",
-                  fontSize: "var(--font-size-small)",
-                  minHeight: "44px",
-                  flex: "1",
-                  minWidth: "60px"
-                }}
-              >
-                A-
-              </button>
-              <button
-                onClick={resetFontSize}
-                aria-label="Tamanho de fonte padrão"
-                style={{
-                  padding: "var(--spacing-sm) var(--spacing-md)",
-                  backgroundColor: "var(--secondary-color)",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                  fontSize: "var(--font-size-small)",
-                  minHeight: "44px",
-                  flex: "1",
-                  minWidth: "60px"
-                }}
-              >
-                A
-              </button>
-              <button
-                onClick={increaseFontSize}
-                aria-label="Aumentar tamanho da fonte"
-                disabled={fontSize === "xlarge"}
-                style={{
-                  padding: "var(--spacing-sm) var(--spacing-md)",
-                  backgroundColor: fontSize === "xlarge" ? "var(--disabled-color)" : "var(--secondary-color)",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "4px",
-                  cursor: fontSize === "xlarge" ? "not-allowed" : "pointer",
-                  fontSize: "var(--font-size-small)",
-                  minHeight: "44px",
-                  flex: "1",
-                  minWidth: "60px"
-                }}
-              >
-                A+
-              </button>
-            </div>
-            <p style={{ 
-              margin: 0, 
-              fontSize: "var(--font-size-small)", 
-              color: "var(--text-secondary)" 
-            }}>
-              Tamanho atual: {fontSize === "small" ? "Pequeno" : fontSize === "medium" ? "Médio" : fontSize === "large" ? "Grande" : "Muito Grande"}
-            </p>
-          </div>
-
-          {/* Alto contraste */}
-          <div style={{ marginBottom: "var(--spacing-xl)" }}>
-            <h3 style={{ 
-              marginBottom: "var(--spacing-sm)", 
-              color: "var(--text-color)",
-              fontSize: "var(--font-size-medium)"
-            }}>
-              Alto Contraste
-            </h3>
-            <label style={{ 
-              display: "flex", 
-              alignItems: "center", 
-              cursor: "pointer",
-              gap: "var(--spacing-sm)"
-            }}>
-              <input
-                type="checkbox"
-                checked={highContrast}
-                onChange={toggleHighContrast}
-                style={{ 
-                  transform: "scale(1.2)",
-                  minHeight: "20px",
-                  minWidth: "20px"
-                }}
-              />
-              <span style={{ 
-                color: "var(--text-color)",
-                fontSize: "var(--font-size-small)"
-              }}>
-                Ativar alto contraste para melhor legibilidade
-              </span>
-            </label>
-          </div>
-
-          {/* Redução de movimento */}
-          <div style={{ marginBottom: "var(--spacing-xl)" }}>
-            <h3 style={{ 
-              marginBottom: "var(--spacing-sm)", 
-              color: "var(--text-color)",
-              fontSize: "var(--font-size-medium)"
-            }}>
-              Redução de Movimento
-            </h3>
-            <label style={{ 
-              display: "flex", 
-              alignItems: "center", 
-              cursor: "pointer",
-              gap: "var(--spacing-sm)"
-            }}>
-              <input
-                type="checkbox"
-                checked={reducedMotion}
-                onChange={toggleReducedMotion}
-                style={{ 
-                  transform: "scale(1.2)",
-                  minHeight: "20px",
-                  minWidth: "20px"
-                }}
-              />
-              <span style={{ 
-                color: "var(--text-color)",
-                fontSize: "var(--font-size-small)"
-              }}>
-                Reduzir animações e transições
-              </span>
-            </label>
           </div>
 
           {/* Atalhos de teclado */}

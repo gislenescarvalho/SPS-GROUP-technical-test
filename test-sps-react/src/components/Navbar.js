@@ -1,11 +1,37 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 
 function Navbar() {
-  const { user, logout } = useAuth();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Sempre chamar o hook no topo do componente
+  const authContext = useAuth();
+
+  // Hook para detectar o tamanho da tela
+  useEffect(() => {
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    // Verificar no carregamento inicial
+    checkIsMobile();
+
+    // Adicionar listener para mudanças de tamanho da tela
+    window.addEventListener('resize', checkIsMobile);
+
+    // Cleanup do listener
+    return () => window.removeEventListener('resize', checkIsMobile);
+  }, []);
+
+  // Verificar se o contexto tem as propriedades necessárias
+  if (!authContext || typeof authContext !== 'object') {
+    return null;
+  }
+
+  const { user, logout } = authContext;
 
   const handleLogout = () => {
     logout();
@@ -55,9 +81,8 @@ function Navbar() {
           
           {/* Menu desktop */}
           <div style={{ 
-            display: "flex", 
-            gap: "var(--spacing-md)",
-            display: window.innerWidth > 768 ? "flex" : "none"
+            display: isMobile ? "none" : "flex", 
+            gap: "var(--spacing-md)"
           }}>
             <Link
               to="/"
@@ -95,26 +120,7 @@ function Navbar() {
             >
               Usuários
             </Link>
-            {user.type === 'admin' && (
-              <Link
-                to="/metrics"
-                style={{
-                  color: location.pathname === "/metrics" ? "var(--primary-color)" : "var(--text-color)",
-                  textDecoration: "none",
-                  padding: "var(--spacing-sm) var(--spacing-md)",
-                  borderRadius: "4px",
-                  backgroundColor: location.pathname === "/metrics" ? "rgba(0, 123, 255, 0.1)" : "transparent",
-                  transition: "background-color 0.3s ease",
-                  minHeight: "44px",
-                  display: "flex",
-                  alignItems: "center"
-                }}
-                aria-label="Métricas do sistema"
-                aria-current={location.pathname === "/metrics" ? "page" : undefined}
-              >
-                📊 Métricas
-              </Link>
-            )}
+
           </div>
         </div>
 
@@ -122,7 +128,7 @@ function Navbar() {
         <button
           onClick={toggleMobileMenu}
           style={{
-            display: "none",
+            display: isMobile ? "flex" : "none",
             background: "none",
             border: "none",
             fontSize: "var(--font-size-large)",
@@ -131,7 +137,6 @@ function Navbar() {
             padding: "var(--spacing-sm)",
             minHeight: "44px",
             minWidth: "44px",
-            display: "flex",
             alignItems: "center",
             justifyContent: "center"
           }}
@@ -143,10 +148,9 @@ function Navbar() {
 
         {/* Informações do usuário e logout - desktop */}
         <div style={{ 
-          display: "flex", 
+          display: isMobile ? "none" : "flex", 
           alignItems: "center", 
-          gap: "var(--spacing-md)",
-          display: window.innerWidth > 768 ? "flex" : "none"
+          gap: "var(--spacing-md)"
         }}>
           <span style={{ 
             fontSize: "var(--font-size-small)",
@@ -232,28 +236,7 @@ function Navbar() {
           >
             Usuários
           </Link>
-          {user.type === 'admin' && (
-            <Link
-              to="/metrics"
-              onClick={() => setIsMobileMenuOpen(false)}
-              style={{
-                color: location.pathname === "/metrics" ? "var(--primary-color)" : "var(--text-color)",
-                textDecoration: "none",
-                padding: "var(--spacing-md)",
-                borderRadius: "4px",
-                backgroundColor: location.pathname === "/metrics" ? "rgba(0, 123, 255, 0.1)" : "transparent",
-                transition: "background-color 0.3s ease",
-                minHeight: "44px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center"
-              }}
-              aria-label="Métricas do sistema"
-              aria-current={location.pathname === "/metrics" ? "page" : undefined}
-            >
-              📊 Métricas
-            </Link>
-          )}
+
           
           {/* Informações do usuário - mobile */}
           <div style={{

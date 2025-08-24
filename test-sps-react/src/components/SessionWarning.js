@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import useSession from '../hooks/useSession';
+import LoaderInline from './LoaderInline';
 import { logSecurityEvent } from '../middleware/security';
 
 /**
@@ -7,6 +9,18 @@ import { logSecurityEvent } from '../middleware/security';
  * Inclui avisos de expiração e opções para renovar ou estender a sessão
  */
 const SessionWarning = () => {
+  // Sempre chamar os hooks no topo do componente
+  const authContext = useAuth();
+  const sessionData = useSession();
+
+  const [showWarning, setShowWarning] = useState(false);
+  const [isRenewing, setIsRenewing] = useState(false);
+  const [countdown, setCountdown] = useState(null);
+
+  // Extrair dados do contexto de autenticação
+  const isAuthenticated = authContext && typeof authContext === 'object' ? authContext.isAuthenticated : false;
+  
+  // Só usar os dados da sessão se houver um usuário autenticado
   const {
     sessionWarning,
     timeRemaining,
@@ -20,11 +34,20 @@ const SessionWarning = () => {
     needsRenewal,
     sessionError,
     isRefreshing
-  } = useSession();
-
-  const [showWarning, setShowWarning] = useState(false);
-  const [isRenewing, setIsRenewing] = useState(false);
-  const [countdown, setCountdown] = useState(null);
+  } = isAuthenticated ? sessionData : {
+    sessionWarning: false,
+    timeRemaining: null,
+    isInactive: false,
+    isSessionActive: false,
+    renewSession: () => Promise.resolve(false),
+    extendSession: () => {},
+    formatTimeRemaining: () => '',
+    isNearExpiry: false,
+    isExpired: false,
+    needsRenewal: false,
+    sessionError: null,
+    isRefreshing: false
+  };
 
   // Contador regressivo para expiração
   useEffect(() => {
@@ -61,9 +84,12 @@ const SessionWarning = () => {
       const success = await renewSession();
       if (success) {
         setShowWarning(false);
-        logSecurityEvent('session_warning_renewed', {
-          timeRemaining: timeRemaining
-        });
+        // Verificar se logSecurityEvent está disponível antes de chamá-la
+        if (typeof logSecurityEvent === 'function') {
+          logSecurityEvent('session_warning_renewed', {
+            timeRemaining: timeRemaining
+          });
+        }
       }
     } catch (error) {
       console.error('Erro ao renovar sessão:', error);
@@ -76,21 +102,27 @@ const SessionWarning = () => {
   const handleExtendSession = () => {
     extendSession();
     setShowWarning(false);
-    logSecurityEvent('session_warning_extended', {
-      timeRemaining: timeRemaining
-    });
+    // Verificar se logSecurityEvent está disponível antes de chamá-la
+    if (typeof logSecurityEvent === 'function') {
+      logSecurityEvent('session_warning_extended', {
+        timeRemaining: timeRemaining
+      });
+    }
   };
 
   // Handler para fechar aviso
   const handleCloseWarning = () => {
     setShowWarning(false);
-    logSecurityEvent('session_warning_dismissed', {
-      timeRemaining: timeRemaining
-    });
+    // Verificar se logSecurityEvent está disponível antes de chamá-la
+    if (typeof logSecurityEvent === 'function') {
+      logSecurityEvent('session_warning_dismissed', {
+        timeRemaining: timeRemaining
+      });
+    }
   };
 
-  // Se não há aviso para mostrar, não renderizar nada
-  if (!showWarning) {
+  // Se não há aviso para mostrar ou não há usuário logado, não renderizar nada
+  if (!showWarning || !isSessionActive || !isAuthenticated) {
     return null;
   }
 
@@ -151,7 +183,7 @@ const SessionWarning = () => {
           
           {isRefreshing && (
             <div className="session-warning-loading">
-              <span>Renovando sessão...</span>
+              <LoaderInline text="Renovando sessão..." size={16} />
             </div>
           )}
           
@@ -163,7 +195,7 @@ const SessionWarning = () => {
                   onClick={handleRenewSession}
                   disabled={isRenewing || isRefreshing}
                 >
-                  {isRenewing || isRefreshing ? 'Renovando...' : 'Renovar Sessão'}
+                  {isRenewing || isRefreshing ? <LoaderInline text="Renovando..." size={16} /> : 'Renovar Sessão'}
                 </button>
               )}
               

@@ -5,23 +5,49 @@ import Navbar from "../components/Navbar";
 import AccessibilityPanel from "../components/AccessibilityPanel";
 import Modal from "../components/Modal";
 import FormField from "../components/FormField";
+import LoaderInline from "../components/LoaderInline";
+import PasswordStrengthIndicator from "../components/PasswordStrengthIndicator";
 import { updateUserSchema, validateData } from "../validations/userValidations";
 
 export async function userLoader({ params }) {
   try {
+    if (!params.userId) {
+      throw new Error("ID do usuário não fornecido");
+    }
+    
     const user = await UserService.get(params.userId);
+    
+    if (!user) {
+      throw new Error("Usuário não encontrado");
+    }
+    
     return { user };
   } catch (error) {
+    console.error("Erro no userLoader:", error);
     throw new Error("Erro ao carregar usuário");
   }
 }
 
 function UserEdit() {
-  const { user: initialUser } = useLoaderData();
+  let initialUser;
+  let loaderError;
+  
+  try {
+    const loaderData = useLoaderData();
+    initialUser = loaderData?.user;
+  } catch (error) {
+    console.error('Erro ao carregar dados do loader:', error);
+    loaderError = error;
+  }
+
   const { userId } = useParams();
   const navigate = useNavigate();
   
-  const [user, setUser] = useState(initialUser);
+  const [user, setUser] = useState({
+    ...initialUser,
+    password: "",
+    confirmPassword: ""
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -31,8 +57,10 @@ function UserEdit() {
   const [modalMessage, setModalMessage] = useState("");
   const [validationErrors, setValidationErrors] = useState({});
 
-  // Verificar se houve mudanças
+  // Verificar se houve mudanças - sempre executar este useEffect
   useEffect(() => {
+    if (!initialUser || !user) return;
+    
     const originalData = JSON.stringify({
       name: initialUser.name,
       email: initialUser.email,
@@ -43,8 +71,26 @@ function UserEdit() {
       email: user.email,
       type: user.type
     });
-    setHasChanges(originalData !== currentData);
+    const hasPasswordChanges = user.password && user.password.length > 0;
+    const hasChangesValue = originalData !== currentData || hasPasswordChanges;
+    setHasChanges(hasChangesValue);
   }, [user, initialUser]);
+
+  // Verificar se houve erro no loader ou se o usuário inicial foi carregado corretamente
+  if (loaderError || !initialUser) {
+    return (
+      <div style={{ 
+        display: "flex", 
+        justifyContent: "center", 
+        alignItems: "center", 
+        height: "100vh",
+        fontSize: "var(--font-size-large)",
+        color: "var(--text-color)"
+      }}>
+        {loaderError ? "Erro ao carregar usuário" : "Carregando usuário..."}
+      </div>
+    );
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -56,33 +102,37 @@ function UserEdit() {
   };
 
   const confirmUpdate = async () => {
+    console.log('🔍 confirmUpdate chamado');
     setLoading(true);
     setError("");
     setValidationErrors({});
 
     try {
       // Validar dados antes de enviar
-      const { id, ...updateData } = user;
-      const validation = await validateData(updateUserSchema, updateData);
+      const { id, confirmPassword, ...updateData } = user;
+      
+      // Se não há senha, remover o campo password do updateData
+      if (!updateData.password || updateData.password.length === 0) {
+        delete updateData.password;
+      }
+      
+      console.log('🔍 Dados para atualização:', { userId, updateData });
+      
+      const validation = await validateData(updateUserSchema, user);
       if (!validation.isValid) {
         setValidationErrors(validation.errors);
         setLoading(false);
         return;
       }
 
-      // Verificar email duplicado
-      const emailExists = await UserService.checkEmailExists(updateData.email, userId);
-      if (emailExists) {
-        setValidationErrors({ email: 'Este email já está em uso por outro usuário' });
-        setLoading(false);
-        return;
-      }
-
+      console.log('🔍 Chamando UserService.update...');
       await UserService.update(userId, updateData);
+      console.log('✅ Update realizado com sucesso');
       setShowConfirmModal(false);
       setModalMessage("Usuário atualizado com sucesso!");
       setShowSuccessModal(true);
     } catch (error) {
+      console.error('❌ Erro no confirmUpdate:', error);
       setModalMessage(error.message);
       setShowErrorModal(true);
     } finally {
@@ -101,7 +151,7 @@ function UserEdit() {
   return (
     <div>
       <Navbar />
-      <div className="container" style={{ padding: "var(--spacing-xl) 0" }}>
+      <div className="container" style={{ padding: "var(--spacing-xl) var(--spacing-xl)" }}>
         <div style={{ 
           display: "flex", 
           justifyContent: "space-between", 
@@ -210,6 +260,45 @@ function UserEdit() {
 
             <div style={{ 
               display: "grid", 
+              gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", 
+              gap: "var(--spacing-lg)", 
+              marginBottom: "var(--spacing-lg)" 
+            }}>
+              <FormField
+                label="Nova Senha (opcional)"
+                type="password"
+                name="password"
+                value={user.password}
+                onChange={handleChange}
+                error={validationErrors.password}
+                minLength={8}
+                maxLength={50}
+                placeholder="Deixe em branco para manter a senha atual"
+              />
+              <FormField
+                label="Confirmar Nova Senha"
+                type="password"
+                name="confirmPassword"
+                value={user.confirmPassword}
+                onChange={handleChange}
+                error={validationErrors.confirmPassword}
+                minLength={8}
+                maxLength={50}
+                placeholder="Digite a nova senha novamente"
+              />
+            </div>
+            
+            {user.password && user.password.length > 0 && (
+              <div style={{
+                marginBottom: "var(--spacing-lg)",
+                padding: "var(--spacing-md)",         
+              }}>
+                <PasswordStrengthIndicator password={user.password} />
+              </div>
+            )}
+
+            <div style={{ 
+              display: "grid", 
               gap: "var(--spacing-md)",
               gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))"
             }}>
@@ -229,7 +318,7 @@ function UserEdit() {
                 }}
                 aria-label={loading ? "Salvando alterações..." : !hasChanges ? "Nenhuma alteração para salvar" : "Salvar alterações"}
               >
-                {loading ? "Salvando..." : !hasChanges ? "Nenhuma Alteração" : "Salvar"}
+                {loading ? <LoaderInline text="Salvando..." /> : !hasChanges ? "Nenhuma Alteração" : "Salvar"}
               </button>
               <button
                 type="button"
@@ -316,7 +405,7 @@ function UserEdit() {
               }}
               aria-label={loading ? "Salvando..." : "Confirmar alterações"}
             >
-              {loading ? "Salvando..." : "Confirmar"}
+              {loading ? <LoaderInline text="Salvando..." /> : "Confirmar"}
             </button>
           </div>
         </div>

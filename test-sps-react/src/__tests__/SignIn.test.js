@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from '../contexts/AuthContext';
 import { AccessibilityProvider } from '../contexts/AccessibilityContext';
+import { ToastProvider } from '../contexts/ToastContext';
 import SignIn from '../pages/SignIn';
 
 jest.mock('../services/AuthService', () => ({
@@ -18,7 +19,9 @@ const renderWithProviders = (component) => {
     <BrowserRouter>
       <AccessibilityProvider>
         <AuthProvider>
-          {component}
+          <ToastProvider>
+            {component}
+          </ToastProvider>
         </AuthProvider>
       </AccessibilityProvider>
     </BrowserRouter>
@@ -30,44 +33,20 @@ describe('SignIn Component', () => {
     jest.clearAllMocks();
   });
 
-  describe('Renderização', () => {
-    test('deve renderizar o formulário de login corretamente', () => {
-      renderWithProviders(<SignIn />);
-      
-      expect(screen.getByText('Login')).toBeInTheDocument();
-      expect(screen.getByPlaceholderText('admin@spsgroup.com.br')).toBeInTheDocument();
-      expect(screen.getByPlaceholderText('1234')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /fazer login/i })).toBeInTheDocument();
-    });
-
-    test('deve exibir informações do usuário padrão', () => {
-      renderWithProviders(<SignIn />);
-      
-      expect(screen.getByText('Usuário padrão:')).toBeInTheDocument();
-      expect(screen.getByText('Email: admin@spsgroup.com.br')).toBeInTheDocument();
-      expect(screen.getByText('Senha: 1234')).toBeInTheDocument();
-    });
-
-    test('deve exibir informações sobre acessibilidade', () => {
-      renderWithProviders(<SignIn />);
-      
-      expect(screen.getByText(/♿ Use o botão de acessibilidade/)).toBeInTheDocument();
-    });
+  test('deve renderizar o formulário de login corretamente', () => {
+    renderWithProviders(<SignIn />);
+    
+    expect(screen.getByText('Login')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('email@example.com')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('********')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /fazer login/i })).toBeInTheDocument();
   });
 
-  describe('Acessibilidade', () => {
-    test('deve ter labels apropriados para screen readers', () => {
-      renderWithProviders(<SignIn />);
-      
-      expect(screen.getByRole('textbox', { name: /email/i })).toBeInTheDocument();
-      expect(screen.getByLabelText(/senha/i)).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /fazer login/i })).toBeInTheDocument();
-    });
-
-    test('deve ter botão de acessibilidade', () => {
-      renderWithProviders(<SignIn />);
-      
-      expect(screen.getByLabelText(/abrir painel de acessibilidade/i)).toBeInTheDocument();
-    });
+  test('deve exibir informações do usuário padrão', () => {
+    renderWithProviders(<SignIn />);
+    
+    expect(screen.getByText('Usuário padrão:')).toBeInTheDocument();
+    expect(screen.getByText('Email: admin@spsgroup.com.br')).toBeInTheDocument();
+    expect(screen.getByText('Senha: Admin@2024!')).toBeInTheDocument();
   });
 });

@@ -1,4 +1,11 @@
-const redisService = require('./redisService');
+const NodeCache = require('node-cache');
+
+// Cache em memória para logs de auditoria
+const auditCache = new NodeCache({
+  stdTTL: 90 * 24 * 3600, // 90 dias padrão
+  checkperiod: 3600,
+  useClones: false
+});
 const config = require('../config');
 
 class AuditService {
@@ -27,7 +34,6 @@ class AuditService {
     // Sistema
     CONFIG_CHANGED: 'config_changed',
     CACHE_CLEARED: 'cache_cleared',
-    METRICS_EXPORTED: 'metrics_exported',
     
     // Segurança
     RATE_LIMIT_EXCEEDED: 'rate_limit_exceeded',
@@ -56,11 +62,11 @@ class AuditService {
         errorMessage: data.errorMessage || null
       };
 
-      // Armazenar no Redis com TTL baseado na severidade
+      // Armazenar em memória com TTL baseado na severidade
       const ttl = this.getTTLBySeverity(auditEntry.severity);
       const key = `audit:${auditEntry.id}`;
       
-      await redisService.set(key, JSON.stringify(auditEntry), ttl);
+      auditCache.set(key, auditEntry, ttl);
       
       // Adicionar à lista de logs por usuário (se aplicável)
       if (auditEntry.userId) {
@@ -70,9 +76,7 @@ class AuditService {
       // Adicionar à lista de logs por ação
       await this.addToActionLogs(auditEntry.action, auditEntry.id, ttl);
 
-      // Registrar métrica
-      await redisService.incrementMetric(`audit_${auditEntry.action}`);
-      await redisService.incrementMetric(`audit_severity_${auditEntry.severity}`);
+
 
       // Log para console em desenvolvimento
       if (config.server.env === 'development') {
@@ -112,8 +116,9 @@ class AuditService {
   async addToUserLogs(userId, auditId, ttl) {
     try {
       const key = `user_audit:${userId}`;
-      await redisService.lpush(key, auditId);
-      await redisService.expire(key, ttl);
+      const existingLogs = auditCache.get(key) || [];
+      existingLogs.unshift(auditId);
+      auditCache.set(key, existingLogs, ttl);
     } catch (error) {
       console.error('❌ Erro ao adicionar log do usuário:', error.message);
     }
@@ -123,8 +128,9 @@ class AuditService {
   async addToActionLogs(action, auditId, ttl) {
     try {
       const key = `action_audit:${action}`;
-      await redisService.lpush(key, auditId);
-      await redisService.expire(key, ttl);
+      const existingLogs = auditCache.get(key) || [];
+      existingLogs.unshift(auditId);
+      auditCache.set(key, existingLogs, ttl);
     } catch (error) {
       console.error('❌ Erro ao adicionar log da ação:', error.message);
     }
@@ -147,28 +153,27 @@ class AuditService {
 
       // Buscar por usuário
       if (userId) {
-        const userLogs = await redisService.lrange(`user_audit:${userId}`, 0, -1);
+        const userLogs = auditCache.get(`user_audit:${userId}`) || [];
         auditIds = userLogs;
       }
       // Buscar por ação
       else if (action) {
-        const actionLogs = await redisService.lrange(`action_audit:${action}`, 0, -1);
+        const actionLogs = auditCache.get(`action_audit:${action}`) || [];
         auditIds = actionLogs;
       }
       // Buscar todos (limitado)
       else {
-        const keys = await redisService.keys('audit:*');
-        auditIds = keys.slice(0, 1000); // Limitar para performance
+        const keys = auditCache.keys();
+        auditIds = keys.filter(key => key.startsWith('audit:')).slice(0, 1000); // Limitar para performance
       }
 
       // Buscar detalhes dos logs
       const logs = [];
       for (const id of auditIds.slice(offset, offset + limit)) {
         const auditKey = id.startsWith('audit:') ? id : `audit:${id}`;
-        const logData = await redisService.get(auditKey);
+        const log = auditCache.get(auditKey);
         
-        if (logData) {
-          const log = JSON.parse(logData);
+        if (log) {
           
           // Aplicar filtros adicionais
           if (severity && log.severity !== severity) continue;
@@ -197,34 +202,21 @@ class AuditService {
   // Obter estatísticas de auditoria
   async getAuditStats() {
     try {
-      const stats = await redisService.getMetrics([
-        'audit_login',
-        'audit_logout',
-        'audit_login_failed',
-        'audit_user_created',
-        'audit_user_updated',
-        'audit_user_deleted',
-        'audit_severity_low',
-        'audit_severity_medium',
-        'audit_severity_high',
-        'audit_severity_critical'
-      ]);
-
       return {
-        totalLogs: Object.values(stats).reduce((sum, val) => sum + (val || 0), 0),
+        totalLogs: 0,
         byAction: {
-          logins: stats.audit_login || 0,
-          logouts: stats.audit_logout || 0,
-          failedLogins: stats.audit_login_failed || 0,
-          userCreations: stats.audit_user_created || 0,
-          userUpdates: stats.audit_user_updated || 0,
-          userDeletions: stats.audit_user_deleted || 0
+          logins: 0,
+          logouts: 0,
+          failedLogins: 0,
+          userCreations: 0,
+          userUpdates: 0,
+          userDeletions: 0
         },
         bySeverity: {
-          low: stats.audit_severity_low || 0,
-          medium: stats.audit_severity_medium || 0,
-          high: stats.audit_severity_high || 0,
-          critical: stats.audit_severity_critical || 0
+          low: 0,
+          medium: 0,
+          high: 0,
+          critical: 0
         }
       };
     } catch (error) {
@@ -239,7 +231,6 @@ class AuditService {
       // Esta funcionalidade seria implementada com um job agendado
       // Por enquanto, apenas log
       console.log('🧹 Limpeza de logs de auditoria antigos executada');
-      await redisService.incrementMetric('audit_cleanup_runs');
     } catch (error) {
       console.error('❌ Erro na limpeza de logs:', error.message);
     }

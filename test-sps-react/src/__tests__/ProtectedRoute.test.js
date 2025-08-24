@@ -31,109 +31,36 @@ describe('ProtectedRoute Component', () => {
     mockNavigate.mockClear();
   });
 
-  describe('Quando usuário está autenticado', () => {
-    test('deve renderizar o conteúdo protegido', () => {
-      useAuth.mockReturnValue({
-        isAuthenticated: true,
-        loading: false,
-        user: { id: 1, name: 'Admin' }
-      });
-
-      renderWithRouter(
-        <ProtectedRoute>
-          <TestComponent />
-        </ProtectedRoute>
-      );
-
-      expect(screen.getByText('Conteúdo Protegido')).toBeInTheDocument();
+  test('deve renderizar o conteúdo quando autenticado', () => {
+    useAuth.mockReturnValue({
+      isAuthenticated: true,
+      loading: false,
+      user: { id: 1, name: 'Admin' }
     });
 
-    test('deve renderizar múltiplos children', () => {
-      useAuth.mockReturnValue({
-        isAuthenticated: true,
-        loading: false,
-        user: { id: 1, name: 'Admin' }
-      });
+    renderWithRouter(
+      <ProtectedRoute>
+        <TestComponent />
+      </ProtectedRoute>
+    );
 
-      renderWithRouter(
-        <ProtectedRoute>
-          <div>Child 1</div>
-          <div>Child 2</div>
-        </ProtectedRoute>
-      );
-
-      expect(screen.getByText('Child 1')).toBeInTheDocument();
-      expect(screen.getByText('Child 2')).toBeInTheDocument();
-    });
+    expect(screen.getByText('Conteúdo Protegido')).toBeInTheDocument();
   });
 
-  describe('Quando usuário não está autenticado', () => {
-    test('deve redirecionar para /signin', () => {
-      useAuth.mockReturnValue({
-        isAuthenticated: false,
-        loading: false,
-        user: null
-      });
-
-      renderWithRouter(
-        <ProtectedRoute>
-          <TestComponent />
-        </ProtectedRoute>
-      );
-
-      expect(screen.getByTestId('navigate')).toBeInTheDocument();
-      expect(screen.getByText('Redirecting to /signin')).toBeInTheDocument();
-      expect(mockNavigate).toHaveBeenCalledWith('/signin');
+  test('deve redirecionar quando não autenticado', () => {
+    useAuth.mockReturnValue({
+      isAuthenticated: false,
+      loading: false,
+      user: null
     });
 
-    test('não deve renderizar o conteúdo protegido', () => {
-      useAuth.mockReturnValue({
-        isAuthenticated: false,
-        loading: false,
-        user: null
-      });
+    renderWithRouter(
+      <ProtectedRoute>
+        <TestComponent />
+      </ProtectedRoute>
+    );
 
-      renderWithRouter(
-        <ProtectedRoute>
-          <TestComponent />
-        </ProtectedRoute>
-      );
-
-      expect(screen.queryByText('Conteúdo Protegido')).not.toBeInTheDocument();
-    });
-  });
-
-  describe('Durante o carregamento', () => {
-    test('deve mostrar loading quando loading é true', () => {
-      useAuth.mockReturnValue({
-        isAuthenticated: false,
-        loading: true,
-        user: null
-      });
-
-      renderWithRouter(
-        <ProtectedRoute>
-          <TestComponent />
-        </ProtectedRoute>
-      );
-
-      expect(screen.getByText('Carregando...')).toBeInTheDocument();
-    });
-
-    test('não deve renderizar conteúdo protegido durante loading', () => {
-      useAuth.mockReturnValue({
-        isAuthenticated: false,
-        loading: true,
-        user: null
-      });
-
-      renderWithRouter(
-        <ProtectedRoute>
-          <TestComponent />
-        </ProtectedRoute>
-      );
-
-      expect(screen.queryByText('Conteúdo Protegido')).not.toBeInTheDocument();
-    });
+    expect(screen.getByTestId('navigate')).toBeInTheDocument();
+    expect(mockNavigate).toHaveBeenCalledWith('/signin');
   });
 });

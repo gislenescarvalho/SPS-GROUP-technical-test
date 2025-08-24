@@ -16,12 +16,29 @@ const ErrorHandler = ({ error, variant = 'error', onDismiss, showDetails = false
 
   const logError = useCallback(() => {
     if (error) {
-      logSecurityEvent('ui_error', {
-        message: error.message,
-        stack: error.stack,
-        variant,
-        timestamp: new Date().toISOString()
-      });
+      // Não registrar erros de UI comuns como eventos de segurança
+      const isSecurityError = error.securityRelated || 
+                             error.type === 'security' || 
+                             error.message?.includes('segurança') ||
+                             error.message?.includes('token') ||
+                             error.message?.includes('autenticação');
+      
+      if (isSecurityError) {
+        logSecurityEvent('ui_error', {
+          message: error.message,
+          stack: error.stack,
+          variant,
+          timestamp: new Date().toISOString(),
+          securityRelated: true
+        });
+      } else if (process.env.NODE_ENV === 'development') {
+        // Apenas log em desenvolvimento para erros de UI comuns
+        console.warn('UI Error:', {
+          message: error.message,
+          variant,
+          timestamp: new Date().toISOString()
+        });
+      }
     }
   }, [error, variant]);
 
@@ -149,12 +166,32 @@ export const useErrorHandler = () => {
     return errors;
   }, [errors]);
 
+  // Componente ErrorList que renderiza a lista de erros
+  const ErrorList = ({ variant = 'error', showDetails = false }) => {
+    if (errors.length === 0) return null;
+
+    return (
+      <div>
+        {errors.map(({ id, error }) => (
+          <ErrorHandler
+            key={id}
+            error={error}
+            variant={variant}
+            showDetails={showDetails}
+            onDismiss={() => removeError(id)}
+          />
+        ))}
+      </div>
+    );
+  };
+
   return {
     errors,
     addError,
     removeError,
     clearErrors,
-    getErrors
+    getErrors,
+    ErrorList
   };
 };
 

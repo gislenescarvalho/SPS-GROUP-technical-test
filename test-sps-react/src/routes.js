@@ -1,6 +1,7 @@
 import { createBrowserRouter } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { AccessibilityProvider } from "./contexts/AccessibilityContext";
+import { ToastProvider } from "./contexts/ToastContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AppWrapper from "./components/AppWrapper";
 
@@ -8,17 +9,18 @@ import Home from "./pages/Home";
 import SignIn from "./pages/SignIn";
 import Users from "./pages/Users";
 import UserEdit, { userLoader } from "./pages/UserEdit";
-import Metrics from "./pages/Metrics";
 
 const router = createBrowserRouter([
   {
     path: "/",
     element: (
-      <AccessibilityProvider>
-        <AuthProvider>
-          <AppWrapper />
-        </AuthProvider>
-      </AccessibilityProvider>
+      <AuthProvider>
+        <AccessibilityProvider>
+          <ToastProvider>
+            <AppWrapper />
+          </ToastProvider>
+        </AccessibilityProvider>
+      </AuthProvider>
     ),
     children: [
       {
@@ -50,14 +52,7 @@ const router = createBrowserRouter([
         ),
         loader: userLoader,
       },
-      {
-        path: "metrics",
-        element: (
-          <ProtectedRoute>
-            <Metrics />
-          </ProtectedRoute>
-        ),
-      },
+
     ],
   },
 ]);

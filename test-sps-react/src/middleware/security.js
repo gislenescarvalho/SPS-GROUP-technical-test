@@ -22,11 +22,29 @@ export const validatePassword = (password) => {
   const hasNumbers = /\d/.test(password);
   const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
   
+  // Verificar senhas comuns que devem ser evitadas
+  const commonPasswords = [
+    '1234', '12345', '123456', '1234567', '12345678', '123456789', '1234567890',
+    'password', 'senha', 'admin', 'user', 'test', 'qwerty', 'abc123',
+    'admin123', 'user123', 'test123', 'password123', 'senha123'
+  ];
+  
+  const isCommonPassword = commonPasswords.includes(password.toLowerCase());
+  
+  // Verificar caracteres sequenciais (mais permissivo)
+  const hasSequentialChars = /(?:abc|bcd|cde|def|efg|fgh|ghi|hij|ijk|jkl|klm|lmn|mno|nop|opq|pqr|qrs|rst|stu|tuv|uvw|vwx|wxy|xyz)/i.test(password);
+  
+  // Verificar caracteres repetidos (mais permissivo)
+  const hasRepeatedChars = /(.)\1{3,}/.test(password);
+  
   return password.length >= minLength && 
          hasUpperCase && 
          hasLowerCase && 
          hasNumbers && 
-         hasSpecialChar;
+         hasSpecialChar &&
+         !isCommonPassword &&
+         !hasSequentialChars &&
+         !hasRepeatedChars;
 };
 
 export const generateCSRFToken = () => {
@@ -42,7 +60,23 @@ export const validateCSRFToken = (token) => {
 export const secureStorage = {
   setItem: (key, value) => {
     try {
-      const encryptedValue = btoa(JSON.stringify(value));
+      // Armazenar apenas dados essenciais para evitar inflação
+      let stringValue;
+      
+      if (key === 'user') {
+        // Para usuário, armazenar dados essenciais incluindo o nome
+        const essentialUserData = {
+          id: value.id,
+          name: value.name,
+          email: value.email,
+          type: value.type
+        };
+        stringValue = JSON.stringify(essentialUserData);
+      } else {
+        stringValue = typeof value === 'string' ? value : JSON.stringify(value);
+      }
+      
+      const encryptedValue = btoa(stringValue);
       localStorage.setItem(key, encryptedValue);
     } catch (error) {
       console.error('Erro ao salvar dados seguros:', error);
@@ -53,7 +87,26 @@ export const secureStorage = {
     try {
       const encryptedValue = localStorage.getItem(key);
       if (!encryptedValue) return null;
-      return JSON.parse(atob(encryptedValue));
+      
+      // Verificar se o valor está codificado em base64
+      try {
+        const decodedValue = atob(encryptedValue);
+        // Tentar fazer parse JSON, se falhar, retornar como string
+        try {
+          return JSON.parse(decodedValue);
+        } catch (parseError) {
+          return decodedValue;
+        }
+      } catch (decodeError) {
+        // Se falhar ao decodificar, pode ser que o valor não esteja codificado
+        // Tentar usar o valor diretamente
+        console.warn(`Valor para ${key} não está codificado em base64, usando valor direto`);
+        try {
+          return JSON.parse(encryptedValue);
+        } catch (parseError) {
+          return encryptedValue;
+        }
+      }
     } catch (error) {
       console.error('Erro ao recuperar dados seguros:', error);
       return null;
@@ -65,6 +118,16 @@ export const secureStorage = {
       localStorage.removeItem(key);
     } catch (error) {
       console.error('Erro ao remover dados seguros:', error);
+    }
+  },
+  
+  // Função para limpar todos os dados e evitar inflação
+  clearAll: () => {
+    try {
+      const keys = ['token', 'refreshToken', 'user'];
+      keys.forEach(key => localStorage.removeItem(key));
+    } catch (error) {
+      console.error('Erro ao limpar dados seguros:', error);
     }
   }
 };
@@ -82,6 +145,22 @@ export const validateSecurityHeaders = (headers) => {
 };
 
 export const logSecurityEvent = (eventType, data = {}) => {
+  // Não registrar eventos de segurança para operações bem-sucedidas
+  if (eventType === 'login_success' || eventType === 'logout_success' || eventType === 'token_refresh_success') {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔒 Evento de Segurança:', { type: eventType, ...data });
+    }
+    return;
+  }
+
+  // Não registrar eventos de UI para erros que não são de segurança
+  if (eventType === 'ui_error' && data.message === 'Erro ao fazer login') {
+    // Verificar se é realmente um erro de segurança ou apenas um erro de UI
+    if (data.variant === 'error' && !data.securityRelated) {
+      return; // Não registrar erros de UI comuns
+    }
+  }
+
   const securityEvent = {
     type: eventType,
     timestamp: new Date().toISOString(),
@@ -183,14 +262,18 @@ export const validateRequest = (requestData) => {
 };
 
 export const addSecurityHeaders = (headers = {}) => {
-  return {
-    'X-Content-Type-Options': 'nosniff',
-    'X-Frame-Options': 'DENY',
-    'X-XSS-Protection': '1; mode=block',
-    'Referrer-Policy': 'strict-origin-when-cross-origin',
-    'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'",
-    ...headers
+  // Headers mínimos essenciais para reduzir tamanho
+  const essentialHeaders = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
   };
+  
+  // Adicionar Authorization apenas se existir
+  if (headers['Authorization']) {
+    essentialHeaders['Authorization'] = headers['Authorization'];
+  }
+  
+  return essentialHeaders;
 };
 
 export const validateResponse = (response) => {

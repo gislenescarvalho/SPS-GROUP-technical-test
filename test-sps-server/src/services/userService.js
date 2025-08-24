@@ -1,5 +1,12 @@
 const database = require('../database/fakeDatabase');
-const redisService = require('./redisService');
+const NodeCache = require('node-cache');
+
+// Cache em memória para usuários
+const userCache = new NodeCache({
+  stdTTL: 600, // 10 minutos padrão
+  checkperiod: 120,
+  useClones: false
+});
 const auditService = require('./auditService');
 const config = require('../config');
 const paginationService = require('../utils/pagination');
@@ -20,10 +27,7 @@ class UserService {
       const baseUrl = '/api/users';
       const queryParams = { ...filters };
       result.links = paginationService.generatePaginationLinks(baseUrl, result.pagination, queryParams);
-      
-      const duration = Date.now() - startTime;
-      await redisService.incrementMetric('user_query_duration', duration);
-      await redisService.incrementMetric('user_queries_total');
+    
       
       return {
         users: result.data,
@@ -42,9 +46,8 @@ class UserService {
     const cacheKey = `user:${id}`;
     
     try {
-      const cached = await redisService.get(cacheKey);
+      const cached = userCache.get(cacheKey);
       if (cached) {
-        await redisService.incrementMetric('cache_hits');
         return cached;
       }
       
@@ -55,11 +58,7 @@ class UserService {
         throw new Error('Usuário não encontrado');
       }
       
-      await redisService.set(cacheKey, user, config.cache.userTTL);
-      await redisService.incrementMetric('cache_misses');
-      
-      const duration = Date.now() - startTime;
-      await redisService.incrementMetric('query_duration', duration);
+      userCache.set(cacheKey, user, config.cache.userTTL);
       
       return user;
     } catch (error) {
@@ -90,9 +89,7 @@ class UserService {
     
     await this.invalidateUserCache();
     
-    const duration = Date.now() - startTime;
-    await redisService.incrementMetric('user_creation_duration', duration);
-    await redisService.incrementMetric('users_created');
+
     
     if (auditContext.userId) {
       await auditService.logUserAction(
@@ -135,9 +132,7 @@ class UserService {
 
     await this.invalidateUserCache(id);
     
-    const duration = Date.now() - startTime;
-    await redisService.incrementMetric('user_update_duration', duration);
-    await redisService.incrementMetric('users_updated');
+
 
     if (auditContext.userId) {
       await auditService.logUserAction(
@@ -176,9 +171,7 @@ class UserService {
 
     await this.invalidateUserCache(id);
     
-    const duration = Date.now() - startTime;
-    await redisService.incrementMetric('user_deletion_duration', duration);
-    await redisService.incrementMetric('users_deleted');
+
 
     if (auditContext.userId) {
       await auditService.logUserAction(
@@ -203,7 +196,7 @@ class UserService {
       await paginationService.invalidatePaginationCache('users');
       
       if (userId) {
-        await redisService.del(`user:${userId}`);
+        userCache.del(`user:${userId}`);
       }
       
       console.log('🗑️ Cache de usuários invalidado com sucesso');

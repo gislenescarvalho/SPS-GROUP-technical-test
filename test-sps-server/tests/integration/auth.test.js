@@ -6,7 +6,11 @@ const authService = require('../../src/services/authService');
 const errorHandler = require('../../src/middleware/errorHandler');
 
 // Mock do service
-jest.mock('../../src/services/authService');
+jest.mock('../../src/services/authService', () => ({
+  login: jest.fn(),
+  logout: jest.fn(),
+  validateToken: jest.fn()
+}));
 jest.mock('../../src/middleware/auth', () => ({
   authenticateToken: jest.fn((req, res, next) => {
     // Mock que permite todos os tokens para testes
@@ -176,7 +180,7 @@ describe('Auth Integration Tests', () => {
         .expect(200);
 
       expect(response.body).toEqual(mockResponse);
-      expect(authService.logout).toHaveBeenCalledWith(mockToken);
+      expect(authService.logout).toHaveBeenCalledWith(1, undefined);
     });
 
     it('deve retornar erro 401 quando token não é fornecido', async () => {

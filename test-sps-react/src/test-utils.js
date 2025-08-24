@@ -3,6 +3,7 @@ import { render } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { AccessibilityProvider } from './contexts/AccessibilityContext';
+import { ToastProvider } from './contexts/ToastContext';
 
 // Mock dos serviços
 jest.mock('./services/AuthService', () => ({
@@ -30,7 +31,9 @@ const AllTheProviders = ({ children }) => {
     <BrowserRouter>
       <AccessibilityProvider>
         <AuthProvider>
-          {children}
+          <ToastProvider>
+            {children}
+          </ToastProvider>
         </AuthProvider>
       </AccessibilityProvider>
     </BrowserRouter>
@@ -46,7 +49,9 @@ const renderWithAuth = (ui, options) => {
   const Wrapper = ({ children }) => (
     <BrowserRouter>
       <AuthProvider>
-        {children}
+        <ToastProvider>
+          {children}
+        </ToastProvider>
       </AuthProvider>
     </BrowserRouter>
   );
@@ -58,7 +63,9 @@ const renderWithAccessibility = (ui, options) => {
   const Wrapper = ({ children }) => (
     <BrowserRouter>
       <AccessibilityProvider>
-        {children}
+        <ToastProvider>
+          {children}
+        </ToastProvider>
       </AccessibilityProvider>
     </BrowserRouter>
   );

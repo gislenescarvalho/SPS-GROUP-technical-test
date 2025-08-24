@@ -1,5 +1,12 @@
-const redisService = require('../services/redisService');
+const NodeCache = require('node-cache');
 const config = require('../config');
+
+// Cache em memória usando node-cache
+const memoryCache = new NodeCache({
+  stdTTL: config.cache.defaultTTL,
+  checkperiod: 120,
+  useClones: false
+});
 
 const cacheConfig = {
   '/api/users': {
@@ -12,11 +19,6 @@ const cacheConfig = {
     keyPattern: (req) => `user:${req.params.id}`,
     enabled: true
   },
-  '/api/metrics': {
-    ttl: 60,
-    keyPattern: () => 'metrics:summary',
-    enabled: true
-  }
 };
 
 const cacheMiddleware = () => {
@@ -37,13 +39,11 @@ const cacheMiddleware = () => {
     try {
       const cacheKey = routeConfig.keyPattern(req);
       
-      const cached = await redisService.get(cacheKey);
+      const cached = memoryCache.get(cacheKey);
       if (cached) {
         res.setHeader('X-Cache', 'HIT');
         res.setHeader('X-Cache-Key', cacheKey);
         res.setHeader('X-Cache-TTL', routeConfig.ttl);
-        
-        await redisService.incrementMetric('cache_hits');
         
         return res.json(cached);
       }
@@ -56,8 +56,7 @@ const cacheMiddleware = () => {
         res.setHeader('X-Cache-Key', cacheKey);
         res.setHeader('X-Cache-TTL', routeConfig.ttl);
 
-        cacheResponse(cacheKey, data, routeConfig.ttl)
-          .catch(err => console.error('❌ Erro ao cachear resposta:', err.message));
+        cacheResponse(cacheKey, data, routeConfig.ttl);
 
         return originalJson.call(this, data);
       };
@@ -67,8 +66,7 @@ const cacheMiddleware = () => {
         res.setHeader('X-Cache-Key', cacheKey);
         res.setHeader('X-Cache-TTL', routeConfig.ttl);
 
-        cacheResponse(cacheKey, data, routeConfig.ttl)
-          .catch(err => console.error('❌ Erro ao cachear resposta:', err.message));
+        cacheResponse(cacheKey, data, routeConfig.ttl);
 
         return originalSend.call(this, data);
       };
@@ -101,33 +99,23 @@ function findCacheConfig(path) {
   return null;
 }
 
-async function cacheResponse(key, data, ttl) {
+function cacheResponse(key, data, ttl) {
   try {
-    await redisService.set(key, data, ttl);
-    await redisService.incrementMetric('cache_misses');
+    memoryCache.set(key, data, ttl);
   } catch (error) {
     console.error('❌ Erro ao cachear resposta:', error.message);
   }
 }
 
 const invalidateCache = (patterns) => {
-  return async (req, res, next) => {
+  return (req, res, next) => {
     try {
-      const invalidationPromises = patterns.map(pattern => {
-        if (typeof pattern === 'function') {
-          return redisService.del(pattern(req));
-        }
-        return redisService.del(pattern);
+      patterns.forEach(pattern => {
+        const key = typeof pattern === 'function' ? pattern(req) : pattern;
+        memoryCache.del(key);
       });
 
-      Promise.all(invalidationPromises)
-        .then(() => {
-          console.log('🗑️ Cache invalidado com sucesso');
-        })
-        .catch(err => {
-          console.error('❌ Erro ao invalidar cache:', err.message);
-        });
-
+      console.log('🗑️ Cache invalidado com sucesso');
       next();
     } catch (error) {
       console.error('❌ Erro no middleware de invalidação:', error.message);

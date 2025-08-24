@@ -74,11 +74,16 @@ class AuthController {
       const { refreshToken } = req.body;
       const userId = req.user?.id;
 
+      // Se não há usuário autenticado, ainda permitir logout (pode ser token expirado)
       if (!userId) {
-        return res.status(401).json({
-          success: false,
-          error: 'Usuário não autenticado'
+        // Logout sem autenticação (token expirado ou inválido)
+        console.log('Logout sem autenticação - token pode estar expirado');
+        
+        res.json({
+          success: true,
+          message: 'Logout realizado com sucesso'
         });
+        return;
       }
 
       await authService.logout(userId, refreshToken);
@@ -88,7 +93,13 @@ class AuthController {
         message: 'Logout realizado com sucesso'
       });
     } catch (error) {
-      next(error);
+      // Em caso de erro, ainda retornar sucesso para logout
+      console.error('Erro durante logout:', error.message);
+      
+      res.json({
+        success: true,
+        message: 'Logout realizado com sucesso'
+      });
     }
   }
 

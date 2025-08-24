@@ -52,21 +52,23 @@ class UserService {
    * Atualizar usuário
    */
   async update(id, data) {
+    console.log('🔍 UserService.update chamado:', { id, data });
     try {
-      // Validação de negócio
-      const validation = await this.validateUserData(data, true, id);
-      if (!validation.isValid) {
-        throw new Error(Object.values(validation.errors).join(', '));
+      // Validação básica apenas
+      if (!data.name || data.name.trim().length < 2) {
+        throw new Error('Nome deve ter pelo menos 2 caracteres');
+      }
+      if (!data.email || !this.isValidEmail(data.email)) {
+        throw new Error('Email deve ter um formato válido');
+      }
+      if (!data.type || !['user', 'admin'].includes(data.type)) {
+        throw new Error('Tipo deve ser "user" ou "admin"');
       }
 
-      // Verificar se usuário existe
-      const existingUser = await this.repository.findById(id);
-      if (!existingUser) {
-        throw new Error('Usuário não encontrado');
-      }
-
-      return await this.repository.update(id, data);
+      const result = await this.repository.update(id, data);
+      return result;
     } catch (error) {
+      console.error('❌ Erro no UserService.update:', error);
       throw new Error(error.response?.data?.message || error.message || "Erro ao atualizar usuário");
     }
   }
@@ -103,7 +105,7 @@ class UserService {
     try {
       return await this.repository.checkEmailExists(email, excludeUserId);
     } catch (error) {
-      console.error('Erro ao verificar email:', error);
+      console.error('❌ Erro ao verificar email:', error);
       return false;
     }
   }

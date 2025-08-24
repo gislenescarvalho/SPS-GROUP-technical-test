@@ -10,6 +10,7 @@ const AppWrapper = () => {
   return (
     <>
       <Outlet />
+      {/* SessionWarning será renderizado apenas se os contextos estiverem disponíveis */}
       <SessionWarning />
     </>
   );

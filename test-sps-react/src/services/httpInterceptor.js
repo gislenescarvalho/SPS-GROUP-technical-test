@@ -1,6 +1,6 @@
 import axios from 'axios';
 import config from '../config/api';
-import { securityMiddleware, logSecurityEvent } from '../middleware/security';
+import { securityMiddleware, logSecurityEvent, secureStorage } from '../middleware/security';
 import { securityUtils } from '../config/security';
 
 // Instância do axios configurada
@@ -36,54 +36,91 @@ const isNetworkError = (error) => {
 // Interceptor para requisições
 api.interceptors.request.use(
   (config) => {
+
+    
+    // Limpar dados antigos periodicamente para evitar inflação
+    const lastCleanup = localStorage.getItem('last_cleanup');
+    const now = Date.now();
+    if (!lastCleanup || (now - parseInt(lastCleanup)) > 3600000) { // 1 hora
+      secureStorage.clearAll();
+      localStorage.setItem('last_cleanup', now.toString());
+    }
+    
     // Aplicar middleware de segurança
     config = securityMiddleware.beforeRequest(config);
     
     // Verificar se o token está expirado antes de fazer a requisição
-    const token = localStorage.getItem('token');
+    const token = secureStorage.getItem('token');
     if (token && securityUtils.isTokenExpired(token)) {
-      logSecurityEvent('request_with_expired_token', { 
-        url: config.url,
-        method: config.method 
-      });
-      
-      // Limpar token expirado
-      localStorage.removeItem('token');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('user');
-      
-      // Redirecionar para login se não estiver na página de login
-      if (window.location.pathname !== '/signin') {
-        window.location.href = '/signin';
+      // Permitir requisições de logout mesmo com token expirado
+      if (config.url && config.url.includes('/api/auth/logout')) {
+        // Para logout, não bloquear mesmo com token expirado
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🔒 Logout com token expirado:', { url: config.url, method: config.method });
+        }
+      } else {
+        logSecurityEvent('request_with_expired_token', { 
+          url: config.url,
+          method: config.method 
+        });
+        
+        // Limpar token expirado
+        secureStorage.removeItem('token');
+        secureStorage.removeItem('refreshToken');
+        secureStorage.removeItem('user');
+        
+        // Disparar evento de logout para notificar outros componentes
+        window.dispatchEvent(new CustomEvent('auth:logout', {
+          detail: {
+            timestamp: Date.now(),
+            reason: 'token_expired'
+          }
+        }));
+        
+        return Promise.reject(new Error('Token expirado'));
       }
-      
-      return Promise.reject(new Error('Token expirado'));
     }
     
-    // Adicionar token de autenticação se existir
-    if (token) {
+    // Adicionar token de autenticação se existir (evitar duplicação)
+    if (token && !config.headers.Authorization) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     
-    // Adicionar headers de versão da API se necessário
-    config.headers['X-API-Version'] = '1.0';
+    // Adicionar apenas headers essenciais para reduzir tamanho
+    if (!config.headers['X-API-Version']) {
+      config.headers['X-API-Version'] = 'v1'; // Valor fixo para reduzir tamanho
+    }
     
-    // Adicionar timestamp para evitar cache
-    config.headers['X-Request-Timestamp'] = Date.now();
+    // Removido: X-Request-Timestamp para reduzir headers
     
-    // Log de requisição para auditoria
+    // Log de requisição para auditoria (apenas em desenvolvimento)
     if (process.env.NODE_ENV === 'development') {
+      const headerCount = Object.keys(config.headers).length;
+      const headerSize = JSON.stringify(config.headers).length;
+      
+      // Log simplificado para melhor performance
       console.log('🔒 Request:', {
         method: config.method?.toUpperCase(),
         url: config.url,
-        headers: config.headers
+        headerCount,
+              headerSize: `${headerSize} bytes`
       });
+      
+      // Avisar se os headers estão muito grandes
+      if (headerSize > 8000) {
+        console.warn('⚠️ Headers muito grandes detectados:', headerSize, 'bytes');
+      }
     }
+    
+
     
     return config;
   },
   (error) => {
-    logSecurityEvent('request_error', { error: error.message });
+    // Apenas registrar erros de requisição como eventos de segurança se forem críticos
+    if (error.code === 'NETWORK_ERROR' || error.code === 'ECONNABORTED') {
+      logSecurityEvent('request_error', { error: error.message });
+    }
     return Promise.reject(error);
   }
 );
@@ -122,7 +159,7 @@ api.interceptors.response.use(
       
       try {
         // Verificar se há refresh token
-        const refreshToken = localStorage.getItem('refreshToken');
+        const refreshToken = secureStorage.getItem('refreshToken');
         if (!refreshToken) {
           throw new Error('Refresh token não encontrado');
         }
@@ -132,13 +169,15 @@ api.interceptors.response.use(
           throw new Error('Refresh token expirado');
         }
 
-        logSecurityEvent('token_refresh_attempt', { 
-          url: originalRequest.url,
-          method: originalRequest.method 
-        });
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🔒 Tentativa de renovação de token:', { 
+            url: originalRequest.url,
+            method: originalRequest.method 
+          });
+        }
 
         // Tentar renovar o token
-        const response = await axios.post(`${config.baseURL}/auth/refresh`, {
+        const response = await axios.post(`${config.baseURL}/api/auth/refresh`, {
           refreshToken,
         }, {
           timeout: 10000, // Timeout específico para refresh
@@ -147,7 +186,7 @@ api.interceptors.response.use(
           }
         });
         
-        const { token, refreshToken: newRefreshToken } = response.data;
+        const { accessToken: token, refreshToken: newRefreshToken } = response.data.data || response.data;
         
         // Validar se os novos tokens não estão expirados
         if (securityUtils.isTokenExpired(token)) {
@@ -155,8 +194,8 @@ api.interceptors.response.use(
         }
         
         // Atualizar tokens no localStorage de forma segura
-        localStorage.setItem('token', token);
-        localStorage.setItem('refreshToken', newRefreshToken);
+        secureStorage.setItem('token', token);
+        secureStorage.setItem('refreshToken', newRefreshToken);
         
         // Atualizar header da requisição original
         originalRequest.headers.Authorization = `Bearer ${token}`;
@@ -164,18 +203,20 @@ api.interceptors.response.use(
         // Processar fila de requisições pendentes
         processQueue(null, token);
         
-        logSecurityEvent('token_refresh_success', { 
-          url: originalRequest.url,
-          method: originalRequest.method 
-        });
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🔒 Token renovado com sucesso:', { 
+            url: originalRequest.url,
+            method: originalRequest.method 
+          });
+        }
         
         // Repetir a requisição original
         return api(originalRequest);
       } catch (refreshError) {
         // Se o refresh falhar, limpar todos os dados de autenticação
-        localStorage.removeItem('token');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('user');
+        secureStorage.removeItem('token');
+        secureStorage.removeItem('refreshToken');
+        secureStorage.removeItem('user');
         
         // Limpar dados de sessão
         sessionStorage.clear();
@@ -189,10 +230,13 @@ api.interceptors.response.use(
           url: originalRequest.url 
         });
         
-        // Redirecionar para login se estiver em uma página protegida
-        if (window.location.pathname !== '/signin') {
-          window.location.href = '/signin';
-        }
+        // Disparar evento de logout para notificar outros componentes
+        window.dispatchEvent(new CustomEvent('auth:logout', {
+          detail: {
+            timestamp: Date.now(),
+            reason: 'refresh_failed'
+          }
+        }));
         
         return Promise.reject(refreshError);
       } finally {
@@ -205,11 +249,13 @@ api.interceptors.response.use(
       retryCount++;
       const delay = Math.pow(2, retryCount) * 1000; // Backoff exponencial
       
-      logSecurityEvent('network_retry', { 
-        retryCount,
-        delay,
-        url: originalRequest.url 
-      });
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔒 Retry de rede:', { 
+          retryCount,
+          delay,
+          url: originalRequest.url 
+        });
+      }
       
       return new Promise(resolve => {
         setTimeout(() => {
@@ -236,14 +282,16 @@ api.interceptors.response.use(
     const statusCode = error.response?.status;
     const defaultMessage = 'Erro inesperado. Tente novamente mais tarde.';
     
-    // Log detalhado do erro
-    logSecurityEvent('api_error', {
-      status: statusCode,
-      url: error.config?.url,
-      method: error.config?.method,
-      message: error.response?.data?.message || error.message,
-      retryCount
-    });
+    // Log detalhado do erro apenas para erros críticos
+    if (statusCode >= 500 || statusCode === 401 || statusCode === 403) {
+      logSecurityEvent('api_error', {
+        status: statusCode,
+        url: error.config?.url,
+        method: error.config?.method,
+        message: error.response?.data?.message || error.message,
+        retryCount
+      });
+    }
     
     // Adicionar mensagem de erro consistente
     error.userMessage = errorMessages[statusCode] || defaultMessage;
@@ -258,6 +306,8 @@ export const setAuthToken = (token) => {
     // Verificar se o token não está expirado antes de configurar
     if (!securityUtils.isTokenExpired(token)) {
       api.defaults.headers.common.Authorization = `Bearer ${token}`;
+      
+
     } else {
       logSecurityEvent('set_expired_token', { token: token.substring(0, 10) + '...' });
       clearAuthToken();
@@ -274,7 +324,7 @@ export const clearAuthToken = () => {
 
 // Função para verificar se o token está próximo da expiração
 export const isTokenNearExpiry = () => {
-  const token = localStorage.getItem('token');
+  const token = secureStorage.getItem('token');
   if (!token) return true;
   
   const timeRemaining = securityUtils.getTokenTimeRemaining(token);
@@ -285,7 +335,7 @@ export const isTokenNearExpiry = () => {
 
 // Função para obter tempo restante do token
 export const getTokenTimeRemaining = () => {
-  const token = localStorage.getItem('token');
+  const token = secureStorage.getItem('token');
   if (!token) return 0;
   
   return securityUtils.getTokenTimeRemaining(token);

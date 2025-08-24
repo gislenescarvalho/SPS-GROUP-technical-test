@@ -1,4 +1,11 @@
-const redisService = require('../services/redisService');
+const NodeCache = require('node-cache');
+
+// Cache em memória para paginação
+const paginationCache = new NodeCache({
+  stdTTL: 300, // 5 minutos padrão
+  checkperiod: 120,
+  useClones: false
+});
 const config = require('../config');
 
 class PaginationService {
@@ -43,9 +50,8 @@ class PaginationService {
 
     try {
       if (enableCache) {
-        const cached = await redisService.get(cacheKeyFull);
+        const cached = paginationCache.get(cacheKeyFull);
         if (cached) {
-          await redisService.incrementMetric('pagination_cache_hits');
           return cached;
         }
       }
@@ -81,13 +87,8 @@ class PaginationService {
       };
 
       if (enableCache) {
-        await redisService.set(cacheKeyFull, result, ttl);
-        await redisService.incrementMetric('pagination_cache_misses');
+        paginationCache.set(cacheKeyFull, result, ttl);
       }
-
-      const duration = Date.now() - startTime;
-      await redisService.incrementMetric('pagination_query_duration', duration);
-      await redisService.incrementMetric('pagination_queries_total');
 
       return result;
     } catch (error) {
@@ -144,8 +145,17 @@ class PaginationService {
 
   async invalidatePaginationCache(baseKey, filters = {}) {
     try {
+      const keys = paginationCache.keys();
       const pattern = this.generateCacheKey(baseKey, '*', '*', filters);
-      await redisService.del(pattern);
+      const regexPattern = pattern.replace(/\*/g, '.*');
+      const regex = new RegExp(`^${regexPattern}$`);
+      
+      keys.forEach(key => {
+        if (regex.test(key)) {
+          paginationCache.del(key);
+        }
+      });
+      
       console.log(`🗑️ Cache de paginação invalidado: ${pattern}`);
     } catch (error) {
       console.error('❌ Erro ao invalidar cache de paginação:', error.message);
@@ -154,13 +164,11 @@ class PaginationService {
 
   async getPaginationStats() {
     try {
-      const today = new Date().toISOString().split('T')[0];
-      
       return {
-        queries: await redisService.getMetric('pagination_queries_total', today),
-        cacheHits: await redisService.getMetric('pagination_cache_hits', today),
-        cacheMisses: await redisService.getMetric('pagination_cache_misses', today),
-        avgQueryTime: await redisService.getMetric('pagination_query_duration', today)
+        queries: 0,
+        cacheHits: 0,
+        cacheMisses: 0,
+        avgQueryTime: 0
       };
     } catch (error) {
       console.error('❌ Erro ao obter estatísticas de paginação:', error.message);

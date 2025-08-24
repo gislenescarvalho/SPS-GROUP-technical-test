@@ -46,25 +46,14 @@ const config = {
     silent: true
   },
   
-  redis: {
-    host: 'localhost',
-    port: 6379,
-    password: null,
-    db: 1
-  },
+
   
   cache: {
     enabled: true,
     defaultTTL: 60,
     userTTL: 120,
     maxSize: 100,
-    paginationTTL: 60,
-    metricsTTL: 30
-  },
-  
-  metrics: {
-    enabled: false,
-    retentionDays: 1
+    paginationTTL: 60
   }
 };
 

@@ -23,11 +23,14 @@ class AuthRepository {
    */
   async logout() {
     try {
+      // Tentar fazer logout no servidor
       await api.post(config.endpoints.auth.logout);
       return true;
     } catch (error) {
-      console.error('Erro no logout:', error);
-      return false;
+      // Se falhar, ainda considerar logout bem-sucedido
+      // (pode ser token expirado, mas o usuário quer sair mesmo assim)
+      console.log('Logout no servidor falhou, mas continuando com limpeza local:', error.message);
+      return true;
     }
   }
 

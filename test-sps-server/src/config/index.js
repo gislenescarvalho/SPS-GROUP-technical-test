@@ -8,22 +8,26 @@ const config = isTest ? require('./test') : {
   },
   
   jwt: {
-    secret: process.env.JWT_SECRET,
+    secret: process.env.JWT_SECRET || 'sps-secret-key-development-2024',
     expiresIn: process.env.JWT_EXPIRES_IN || '24h',
     refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d'
   },
   
   cors: {
     allowedOrigins: process.env.ALLOWED_ORIGINS?.split(',') || [
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'http://localhost:8080'
+      'http://localhost:3001'  // Apenas o frontend React
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    allowedHeaders: [
+      'Content-Type', 
+      'Authorization', 
+      'X-Requested-With', 
+      'X-API-Version', 
+      'X-Request-Timestamp'
+    ],
     exposedHeaders: ['Content-Length', 'X-Total-Count'],
-    maxAge: 86400
+    maxAge: 600  // 10 minutos
   },
   
   rateLimit: {
@@ -48,25 +52,14 @@ const config = isTest ? require('./test') : {
     silent: process.env.NODE_ENV === 'test'
   },
   
-  redis: {
-    host: process.env.REDIS_HOST || 'localhost',
-    port: parseInt(process.env.REDIS_PORT) || 6379,
-    password: process.env.REDIS_PASSWORD,
-    db: parseInt(process.env.REDIS_DB) || 0
-  },
+
   
   cache: {
     enabled: process.env.CACHE_ENABLED !== 'false',
     defaultTTL: parseInt(process.env.CACHE_TTL) || 300,
     userTTL: parseInt(process.env.CACHE_USER_TTL) || 600,
     maxSize: parseInt(process.env.CACHE_MAX_SIZE) || 1000,
-    paginationTTL: parseInt(process.env.CACHE_PAGINATION_TTL) || 300,
-    metricsTTL: parseInt(process.env.CACHE_METRICS_TTL) || 60
-  },
-  
-  metrics: {
-    enabled: process.env.METRICS_ENABLED === 'true',
-    retentionDays: parseInt(process.env.METRICS_RETENTION_DAYS) || 30
+    paginationTTL: parseInt(process.env.CACHE_PAGINATION_TTL) || 300
   }
 };
 
@@ -75,7 +68,7 @@ if (!isTest) {
     throw new Error('JWT_SECRET environment variable is required');
   }
 
-  if (config.server.env === 'production' && config.jwt.secret === 'sps-secret-key') {
+  if (config.server.env === 'production' && config.jwt.secret === 'sps-secret-key-development-2024') {
     throw new Error('JWT_SECRET cannot be the default value in production');
   }
 }
