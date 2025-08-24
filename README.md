@@ -10,9 +10,7 @@ SPS-GROUP-technical-test/
 └── test-sps-react/      # Frontend em React
 ```
 
-## 🚀 Execução Rápida
-
-### Pré-requisitos
+## 🚀 Pré-requisitos
 - **Node.js** (versão 16+)
 - **npm** ou **yarn**
 - **Git** (para clonar o repositório)
