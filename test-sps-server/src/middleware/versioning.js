@@ -29,7 +29,7 @@ class APIVersioning {
     // Detectar versão por header
     const versionHeader = req.headers['x-api-version'] || req.headers['accept-version'];
     
-    // Detectar versão por URL
+    // Detectar versão por URL - melhorar regex para ser mais específica
     const urlVersion = req.path.match(/^\/api\/(v\d+)\//);
     
     // Detectar versão por query parameter

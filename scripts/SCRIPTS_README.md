@@ -17,16 +17,16 @@ Este diretório contém scripts para automatizar a instalação de dependências
 
 ```powershell
 # Executar com todas as opções
-.\start-dev.ps1
+.\scripts\start-dev.ps1
 
 # Apenas instalar dependências
-.\start-dev.ps1 -InstallOnly
+.\scripts\start-dev.ps1 -InstallOnly
 
 # Pular instalação e iniciar serviços
-.\start-dev.ps1 -SkipInstall
+.\scripts\start-dev.ps1 -SkipInstall
 
 # Exibir ajuda
-.\start-dev.ps1 -Help
+.\scripts\start-dev.ps1 -Help
 ```
 
 **Características:**
@@ -43,16 +43,16 @@ Este diretório contém scripts para automatizar a instalação de dependências
 
 ```bash
 # Executar com todas as opções
-node start-dev.js
+node scripts/start-dev.js
 
 # Apenas instalar dependências
-node start-dev.js --install-only
+node scripts/start-dev.js --install-only
 
 # Pular instalação e iniciar serviços
-node start-dev.js --skip-install
+node scripts/start-dev.js --skip-install
 
 # Exibir ajuda
-node start-dev.js --help
+node scripts/start-dev.js --help
 ```
 
 **Características:**
@@ -70,7 +70,7 @@ node start-dev.js --help
 
 ```cmd
 # Executar o script
-start-dev.bat
+scripts\start-dev.bat
 ```
 
 **Características:**
@@ -87,10 +87,10 @@ start-dev.bat
 
 ```bash
 # Parar todos os serviços
-node stop-dev.js
+node scripts/stop-dev.js
 
 # Exibir ajuda
-node stop-dev.js --help
+node scripts/stop-dev.js --help
 ```
 
 **Características:**
@@ -104,17 +104,17 @@ node stop-dev.js --help
 
 ```powershell
 # Parar todos os serviços
-.\stop-dev.ps1
+.\scripts\stop-dev.ps1
 
 # Exibir ajuda
-.\stop-dev.ps1 -Help
+.\scripts\stop-dev.ps1 -Help
 ```
 
 #### 3. Batch Script (Windows) - `stop-dev.bat`
 
 ```cmd
 # Parar todos os serviços
-stop-dev.bat
+scripts\stop-dev.bat
 ```
 
 ## 🔧 O que os Scripts Fazem
@@ -170,13 +170,13 @@ npm start    # ou yarn start
 ### Usando Scripts de Automação
 ```bash
 # JavaScript (Cross-Platform)
-node stop-dev.js
+node scripts/stop-dev.js
 
 # PowerShell (Windows)
-.\stop-dev.ps1
+.\scripts\stop-dev.ps1
 
 # Batch (Windows)
-stop-dev.bat
+scripts\stop-dev.bat
 ```
 
 ### Manualmente
@@ -220,7 +220,7 @@ lsof -i :3001
 **Solução:** Os scripts criam automaticamente os arquivos de ambiente. Se o erro persistir, copie manualmente:
 ```bash
 cp test-sps-server/env.example test-sps-server/.env
-cp test-sps-react/env.development.example test-sps-react/.env.development
+cp test-sps-react/env.example test-sps-react/.env
 ```
 
 ## 📝 Logs e Debug

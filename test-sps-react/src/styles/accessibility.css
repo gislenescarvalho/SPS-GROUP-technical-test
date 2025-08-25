@@ -5,6 +5,7 @@
   --secondary-color: #6c757d;
   --success-color: #28a745;
   --danger-color: #dc3545;
+  --error-color: #dc3545;
   --warning-color: #ffc107;
   --info-color: #17a2b8;
   
@@ -43,6 +44,7 @@
   --secondary-color: #868e96;
   --success-color: #51cf66;
   --danger-color: #ff6b6b;
+  --error-color: #ff6b6b;
   --warning-color: #ffd43b;
   --info-color: #74c0fc;
   
@@ -60,6 +62,7 @@
   --secondary-color: #333333;
   --success-color: #006600;
   --danger-color: #cc0000;
+  --error-color: #cc0000;
   --warning-color: #cc6600;
   --info-color: #0066cc;
   

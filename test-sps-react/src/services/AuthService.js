@@ -30,10 +30,10 @@ class AuthService {
         throw new Error('Senha não atende aos critérios de segurança');
       }
       
-      // Chamar repositório para login
+      // Chamar repositório para login com senha em plain text (desenvolvimento)
       const result = await this.repository.login({
         email: email.toLowerCase().trim(),
-        password,
+        password: password
       });
       
       // Verificar se a resposta é válida
@@ -327,4 +327,5 @@ class AuthService {
   }
 }
 
-export default new AuthService();
+const authService = new AuthService();
+export default authService;

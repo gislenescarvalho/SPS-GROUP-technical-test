@@ -45,6 +45,26 @@ npm run test:integration    # Testes de integração
 npm run test:coverage       # Cobertura de testes
 ```
 
+## 🤖 Scripts de Automação
+
+Para facilitar o desenvolvimento, use os scripts centralizados na pasta `scripts/`:
+
+```bash
+# Iniciar todos os serviços
+node ../scripts/start-dev.js
+.\..\scripts\start-dev.ps1
+..\scripts\start-dev.bat
+
+# Parar todos os serviços
+node ../scripts/stop-dev.js
+.\..\scripts\stop-dev.ps1
+..\scripts\stop-dev.bat
+
+# Executar testes específicos
+node ../scripts/test-headers.js
+node ../scripts/test-jwt.js
+```
+
 
 
 ## 🔐 Credenciais Admin
@@ -71,7 +91,7 @@ npm run test:coverage       # Cobertura de testes
 
 
 ### Documentação
-- `GET /api-docs` - Documentação Swagger
+- `GET /api/docs` - Documentação Swagger
 
 ### Versão
 - `GET /api/version` - Informações da versão da API

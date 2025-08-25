@@ -38,20 +38,32 @@ REM Configurar arquivos de ambiente
 echo.
 echo 🔧 Configurando arquivos de ambiente...
 
-if not exist "test-sps-server\.env" (
+REM Obter o diretório raiz do projeto (onde está o script)
+set "SCRIPT_DIR=%~dp0"
+set "PROJECT_ROOT=%SCRIPT_DIR:~0,-1%"
+
+if not exist "%PROJECT_ROOT%\test-sps-server\.env" (
     echo Criando arquivo .env para o backend...
-    copy "test-sps-server\env.example" "test-sps-server\.env" >nul
-    echo ✓ Arquivo .env criado para o backend
+    copy "%PROJECT_ROOT%\test-sps-server\env.example" "%PROJECT_ROOT%\test-sps-server\.env" >nul
+    if %errorlevel% equ 0 (
+        echo ✓ Arquivo .env criado para o backend
+    ) else (
+        echo ❌ Erro ao criar arquivo .env para o backend
+    )
 ) else (
     echo ✓ Arquivo .env já existe para o backend
 )
 
-if not exist "test-sps-react\.env.development" (
-    echo Criando arquivo .env.development para o frontend...
-    copy "test-sps-react\env.development.example" "test-sps-react\.env.development" >nul
-    echo ✓ Arquivo .env.development criado para o frontend
+if not exist "%PROJECT_ROOT%\test-sps-react\.env" (
+    echo Criando arquivo .env para o frontend...
+    copy "%PROJECT_ROOT%\test-sps-react\env.example" "%PROJECT_ROOT%\test-sps-react\.env" >nul
+    if %errorlevel% equ 0 (
+        echo ✓ Arquivo .env criado para o frontend
+    ) else (
+        echo ❌ Erro ao criar arquivo .env para o frontend
+    )
 ) else (
-    echo ✓ Arquivo .env.development já existe para o frontend
+    echo ✓ Arquivo .env já existe para o frontend
 )
 
 REM Perguntar se deve instalar dependências

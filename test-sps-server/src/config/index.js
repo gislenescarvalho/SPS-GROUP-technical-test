@@ -32,7 +32,7 @@ const config = isTest ? require('./test') : {
   
   rateLimit: {
     windowMs: 15 * 60 * 1000,
-    max: parseInt(process.env.RATE_LIMIT_MAX) || 100,
+    max: parseInt(process.env.RATE_LIMIT_MAX) || 1000, // Aumentado para desenvolvimento
     message: {
       error: 'Muitas requisições. Tente novamente em alguns minutos.'
     },

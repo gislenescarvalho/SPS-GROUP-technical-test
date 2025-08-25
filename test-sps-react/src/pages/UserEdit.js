@@ -56,6 +56,8 @@ function UserEdit() {
   const [hasChanges, setHasChanges] = useState(false);
   const [modalMessage, setModalMessage] = useState("");
   const [validationErrors, setValidationErrors] = useState({});
+  const [passwordMatch, setPasswordMatch] = useState(true);
+  const [passwordMatchMessage, setPasswordMatchMessage] = useState("");
 
   // Verificar se houve mudanças - sempre executar este useEffect
   useEffect(() => {
@@ -108,6 +110,13 @@ function UserEdit() {
     setValidationErrors({});
 
     try {
+      // Verificar se as senhas coincidem (apenas se estiver alterando a senha)
+      if (user.password && user.password.length > 0 && !passwordMatch) {
+        setPasswordMatchMessage("As senhas não coincidem. Por favor, corrija antes de continuar.");
+        setLoading(false);
+        return;
+      }
+      
       // Validar dados antes de enviar
       const { id, confirmPassword, ...updateData } = user;
       
@@ -140,12 +149,43 @@ function UserEdit() {
     }
   };
 
+  // Função para verificar se as senhas coincidem
+  const checkPasswordMatch = (password, confirmPassword) => {
+    // Se não há senha sendo alterada, não precisa verificar
+    if (!password || password.length === 0) {
+      setPasswordMatch(true);
+      setPasswordMatchMessage("");
+      return;
+    }
+    
+    if (!confirmPassword || confirmPassword.length === 0) {
+      setPasswordMatch(true);
+      setPasswordMatchMessage("");
+      return;
+    }
+    
+    if (password === confirmPassword) {
+      setPasswordMatch(true);
+      setPasswordMatchMessage("Senhas coincidem!");
+    } else {
+      setPasswordMatch(false);
+      setPasswordMatchMessage("As senhas não coincidem. Por favor, verifique.");
+    }
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setUser(prev => ({
       ...prev,
       [name]: value
     }));
+    
+    // Verificar senhas se estiver alterando campos de senha
+    if (name === 'password') {
+      checkPasswordMatch(value, user.confirmPassword);
+    } else if (name === 'confirmPassword') {
+      checkPasswordMatch(user.password, value);
+    }
   };
 
   return (
@@ -296,6 +336,28 @@ function UserEdit() {
                 <PasswordStrengthIndicator password={user.password} />
               </div>
             )}
+            
+            {/* Mensagem de validação de senha */}
+            {passwordMatchMessage && (
+              <div style={{
+                marginBottom: "var(--spacing-lg)",
+                padding: "var(--spacing-md)",
+                borderRadius: "4px",
+                backgroundColor: passwordMatch ? "var(--success-color)" : "var(--danger-color)",
+                color: "white",
+                fontSize: "var(--font-size-medium)",
+                display: "flex",
+                alignItems: "center",
+                gap: "var(--spacing-sm)",
+                border: `1px solid ${passwordMatch ? "var(--success-color)" : "var(--danger-color)"}`,
+                boxShadow: `0 2px 4px rgba(${passwordMatch ? "40, 167, 69" : "220, 53, 69"}, 0.2)`
+              }}>
+                <span style={{ fontSize: "var(--font-size-large)" }}>
+                  {passwordMatch ? "✅" : "❌"}
+                </span>
+                <span>{passwordMatchMessage}</span>
+              </div>
+            )}
 
             <div style={{ 
               display: "grid", 
@@ -304,21 +366,21 @@ function UserEdit() {
             }}>
               <button
                 type="submit"
-                disabled={loading || !hasChanges}
+                disabled={loading || !hasChanges || (user.password && user.password.length > 0 && !passwordMatch)}
                 style={{
-                  backgroundColor: loading || !hasChanges ? "var(--disabled-color)" : "var(--primary-color)",
+                  backgroundColor: loading || !hasChanges || (user.password && user.password.length > 0 && !passwordMatch) ? "var(--disabled-color)" : "var(--primary-color)",
                   color: "white",
                   border: "none",
                   padding: "var(--spacing-md)",
                   borderRadius: "4px",
                   fontSize: "var(--font-size-medium)",
-                  cursor: loading || !hasChanges ? "not-allowed" : "pointer",
+                  cursor: loading || !hasChanges || (user.password && user.password.length > 0 && !passwordMatch) ? "not-allowed" : "pointer",
                   transition: "background-color 0.3s ease",
                   minHeight: "44px"
                 }}
-                aria-label={loading ? "Salvando alterações..." : !hasChanges ? "Nenhuma alteração para salvar" : "Salvar alterações"}
+                aria-label={loading ? "Salvando alterações..." : !hasChanges ? "Nenhuma alteração para salvar" : (user.password && user.password.length > 0 && !passwordMatch) ? "Senhas não coincidem" : "Salvar alterações"}
               >
-                {loading ? <LoaderInline text="Salvando..." /> : !hasChanges ? "Nenhuma Alteração" : "Salvar"}
+                {loading ? <LoaderInline text="Salvando..." /> : !hasChanges ? "Nenhuma Alteração" : (user.password && user.password.length > 0 && !passwordMatch) ? "Senhas Não Coincidem" : "Salvar"}
               </button>
               <button
                 type="button"
@@ -391,21 +453,21 @@ function UserEdit() {
             </button>
             <button
               onClick={confirmUpdate}
-              disabled={loading}
+              disabled={loading || (user.password && user.password.length > 0 && !passwordMatch)}
               style={{
-                backgroundColor: loading ? "var(--disabled-color)" : "var(--primary-color)",
+                backgroundColor: loading || (user.password && user.password.length > 0 && !passwordMatch) ? "var(--disabled-color)" : "var(--primary-color)",
                 color: "white",
                 border: "none",
                 padding: "var(--spacing-sm) var(--spacing-md)",
                 borderRadius: "4px",
-                cursor: loading ? "not-allowed" : "pointer",
+                cursor: loading || (user.password && user.password.length > 0 && !passwordMatch) ? "not-allowed" : "pointer",
                 fontSize: "var(--font-size-medium)",
                 transition: "background-color 0.3s ease",
                 minHeight: "44px"
               }}
-              aria-label={loading ? "Salvando..." : "Confirmar alterações"}
+              aria-label={loading ? "Salvando..." : (user.password && user.password.length > 0 && !passwordMatch) ? "Senhas não coincidem" : "Confirmar alterações"}
             >
-              {loading ? <LoaderInline text="Salvando..." /> : "Confirmar"}
+              {loading ? <LoaderInline text="Salvando..." /> : (user.password && user.password.length > 0 && !passwordMatch) ? "Senhas Não Coincidem" : "Confirmar"}
             </button>
           </div>
         </div>

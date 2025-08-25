@@ -60,10 +60,14 @@ describe('UserService', () => {
 
   describe('update', () => {
     test('deve atualizar usuário com dados válidos', async () => {
-      const userData = { name: 'Usuário Atualizado' };
+      const userData = { 
+        name: 'Usuário Atualizado',
+        email: 'usuario@test.com',
+        type: 'user'
+      };
       const updatedUser = { id: 1, ...userData };
 
-      UserRepository.findById.mockResolvedValue({ id: 1, name: 'Antigo' });
+      UserRepository.findById.mockResolvedValue({ id: 1, name: 'Antigo', email: 'antigo@test.com', type: 'user' });
       UserRepository.update.mockResolvedValue(updatedUser);
 
       const result = await UserService.update(1, userData);

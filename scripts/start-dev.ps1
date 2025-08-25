@@ -93,7 +93,7 @@ function Install-Dependencies {
         }
     }
     catch {
-        Write-Error "❌ Erro ao instalar dependências para $ProjectName: $_"
+        Write-Error "❌ Erro ao instalar dependências para $ProjectName: $($_.Exception.Message)"
         exit 1
     }
     finally {
@@ -105,24 +105,44 @@ function Install-Dependencies {
 function Setup-EnvironmentFiles {
     Write-Host "`n🔧 Configurando arquivos de ambiente..." -ForegroundColor Yellow
     
+    # Obter o diretório raiz do projeto (onde está o script)
+    $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
+    $projectRoot = Split-Path -Parent $scriptPath
+    
     # Configurar arquivo .env para o backend
-    if (-not (Test-Path "test-sps-server\.env")) {
+    $backendEnvPath = Join-Path $projectRoot "test-sps-server\.env"
+    $backendEnvExamplePath = Join-Path $projectRoot "test-sps-server\env.example"
+    
+    if (-not (Test-Path $backendEnvPath)) {
         Write-Host "Criando arquivo .env para o backend..." -ForegroundColor Cyan
-        Copy-Item "test-sps-server\env.example" "test-sps-server\.env"
-        Write-Host "✓ Arquivo .env criado para o backend" -ForegroundColor Green
+        try {
+            Copy-Item $backendEnvExamplePath $backendEnvPath
+            Write-Host "✓ Arquivo .env criado para o backend" -ForegroundColor Green
+        }
+        catch {
+            Write-Error "❌ Erro ao criar arquivo .env para o backend: $($_.Exception.Message)"
+        }
     }
     else {
         Write-Host "✓ Arquivo .env já existe para o backend" -ForegroundColor Green
     }
     
     # Configurar arquivo .env para o frontend
-    if (-not (Test-Path "test-sps-react\.env.development")) {
-        Write-Host "Criando arquivo .env.development para o frontend..." -ForegroundColor Cyan
-        Copy-Item "test-sps-react\env.development.example" "test-sps-react\.env.development"
-        Write-Host "✓ Arquivo .env.development criado para o frontend" -ForegroundColor Green
+    $frontendEnvPath = Join-Path $projectRoot "test-sps-react\.env"
+    $frontendEnvExamplePath = Join-Path $projectRoot "test-sps-react\env.example"
+    
+    if (-not (Test-Path $frontendEnvPath)) {
+        Write-Host "Criando arquivo .env para o frontend..." -ForegroundColor Cyan
+        try {
+            Copy-Item $frontendEnvExamplePath $frontendEnvPath
+            Write-Host "✓ Arquivo .env criado para o frontend" -ForegroundColor Green
+        }
+        catch {
+            Write-Error "❌ Erro ao criar arquivo .env para o frontend: $($_.Exception.Message)"
+        }
     }
     else {
-        Write-Host "✓ Arquivo .env.development já existe para o frontend" -ForegroundColor Green
+        Write-Host "✓ Arquivo .env já existe para o frontend" -ForegroundColor Green
     }
 }
 
@@ -144,7 +164,7 @@ function Start-Backend {
         Write-Host "  URL: http://localhost:3000" -ForegroundColor Cyan
     }
     catch {
-        Write-Error "❌ Erro ao iniciar o backend: $_"
+        Write-Error "❌ Erro ao iniciar o backend: $($_.Exception.Message)"
         exit 1
     }
     finally {
@@ -173,7 +193,7 @@ function Start-Frontend {
         Write-Host "  URL: http://localhost:3001" -ForegroundColor Cyan
     }
     catch {
-        Write-Error "❌ Erro ao iniciar o frontend: $_"
+        Write-Error "❌ Erro ao iniciar o frontend: $($_.Exception.Message)"
         exit 1
     }
     finally {

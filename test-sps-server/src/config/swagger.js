@@ -191,30 +191,108 @@ const options = {
           type: 'object',
           properties: {
             id: {
-              type: 'string'
+              type: 'string',
+              description: 'ID único do log de auditoria'
             },
             timestamp: {
               type: 'string',
-              format: 'date-time'
+              format: 'date-time',
+              description: 'Data e hora do evento'
             },
             userId: {
-              type: 'integer'
+              type: 'integer',
+              description: 'ID do usuário que executou a ação'
             },
             userEmail: {
-              type: 'string'
+              type: 'string',
+              description: 'Email do usuário'
+            },
+            userType: {
+              type: 'string',
+              description: 'Tipo do usuário'
             },
             action: {
-              type: 'string'
+              type: 'string',
+              description: 'Tipo de ação executada'
             },
             resource: {
-              type: 'string'
+              type: 'string',
+              description: 'Recurso afetado'
+            },
+            resourceId: {
+              type: 'string',
+              description: 'ID do recurso afetado'
             },
             severity: {
               type: 'string',
-              enum: ['low', 'medium', 'high', 'critical']
+              enum: ['low', 'medium', 'high', 'critical'],
+              description: 'Nível de severidade do evento'
             },
             success: {
-              type: 'boolean'
+              type: 'boolean',
+              description: 'Se a ação foi bem-sucedida'
+            },
+            ipAddress: {
+              type: 'string',
+              description: 'Endereço IP do usuário'
+            },
+            userAgent: {
+              type: 'string',
+              description: 'User agent do navegador'
+            }
+          }
+        },
+        CreateUserRequest: {
+          type: 'object',
+          required: ['name', 'email', 'type', 'password'],
+          properties: {
+            name: {
+              type: 'string',
+              minLength: 2,
+              maxLength: 100,
+              description: 'Nome completo do usuário'
+            },
+            email: {
+              type: 'string',
+              format: 'email',
+              description: 'Email do usuário'
+            },
+            type: {
+              type: 'string',
+              enum: ['admin', 'user'],
+              description: 'Tipo do usuário'
+            },
+            password: {
+              type: 'string',
+              minLength: 8,
+              description: 'Senha do usuário'
+            }
+          }
+        },
+        UpdateUserRequest: {
+          type: 'object',
+          minProperties: 1,
+          properties: {
+            name: {
+              type: 'string',
+              minLength: 2,
+              maxLength: 100,
+              description: 'Nome completo do usuário'
+            },
+            email: {
+              type: 'string',
+              format: 'email',
+              description: 'Email do usuário'
+            },
+            type: {
+              type: 'string',
+              enum: ['admin', 'user'],
+              description: 'Tipo do usuário'
+            },
+            password: {
+              type: 'string',
+              minLength: 8,
+              description: 'Nova senha do usuário'
             }
           }
         }
@@ -234,10 +312,7 @@ const options = {
         name: 'Usuários',
         description: 'Gerenciamento de usuários (CRUD)'
       },
-      {
-        name: 'Métricas',
-        description: 'Monitoramento e métricas da aplicação'
-      },
+      
       {
         name: 'Auditoria',
         description: 'Logs de auditoria e rastreamento de ações (V2)'
@@ -248,11 +323,12 @@ const options = {
       }
     ]
   },
-  apis: [
-    './src/routes/*.js',
-    './src/controllers/*.js',
-    './src/validations/*.js'
-  ]
+      apis: [
+      './src/routes/*.js',
+      './src/controllers/*.js',
+      './src/validations/*.js',
+      './src/middleware/*.js'
+    ]
 };
 
 const specs = swaggerJsdoc(options);

@@ -2,6 +2,39 @@ const authService = require('../services/authService');
 const auditService = require('../services/auditService');
 
 class AuthController {
+  /**
+   * @swagger
+   * /auth/login:
+   *   post:
+   *     summary: Autenticar usuário
+   *     description: Realiza login do usuário com email e senha
+   *     tags: [Autenticação]
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             $ref: '#/components/schemas/LoginRequest'
+   *     responses:
+   *       200:
+   *         description: Login realizado com sucesso
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/LoginResponse'
+   *       400:
+   *         description: Dados inválidos
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Error'
+   *       401:
+   *         description: Credenciais inválidas
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Error'
+   */
   // Login do usuário
   async login(req, res, next) {
     try {
@@ -44,6 +77,53 @@ class AuthController {
     }
   }
 
+  /**
+   * @swagger
+   * /auth/refresh:
+   *   post:
+   *     summary: Renovar token de acesso
+   *     description: Renova o token de acesso usando um refresh token válido
+   *     tags: [Autenticação]
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - refreshToken
+   *             properties:
+   *               refreshToken:
+   *                 type: string
+   *                 description: Token de renovação
+   *     responses:
+   *       200:
+   *         description: Token renovado com sucesso
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                 message:
+   *                   type: string
+   *                 data:
+   *                   type: object
+   *                   properties:
+   *                     accessToken:
+   *                       type: string
+   *                     refreshToken:
+   *                       type: string
+   *                     expiresIn:
+   *                       type: integer
+   *       400:
+   *         description: Refresh token inválido
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Error'
+   */
   // Renovar token
   async refreshToken(req, res, next) {
     try {
@@ -68,6 +148,44 @@ class AuthController {
     }
   }
 
+  /**
+   * @swagger
+   * /auth/logout:
+   *   post:
+   *     summary: Fazer logout
+   *     description: Invalida o token de acesso e faz logout do usuário
+   *     tags: [Autenticação]
+   *     security:
+   *       - bearerAuth: []
+   *     requestBody:
+   *       required: false
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               refreshToken:
+   *                 type: string
+   *                 description: Token de renovação para invalidar (opcional)
+   *     responses:
+   *       200:
+   *         description: Logout realizado com sucesso
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                 message:
+   *                   type: string
+   *       401:
+   *         description: Token inválido
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Error'
+   */
   // Logout do usuário
   async logout(req, res, next) {
     try {
@@ -103,6 +221,38 @@ class AuthController {
     }
   }
 
+  /**
+   * @swagger
+   * /auth/stats:
+   *   get:
+   *     summary: Obter estatísticas de autenticação
+   *     description: Retorna estatísticas sobre sessões ativas e autenticação
+   *     tags: [Autenticação]
+   *     security:
+   *       - bearerAuth: []
+   *     responses:
+   *       200:
+   *         description: Estatísticas obtidas com sucesso
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                 data:
+   *                   type: object
+   *                   properties:
+   *                     activeSessions:
+   *                       type: integer
+   *                       description: Número de sessões ativas
+   *       401:
+   *         description: Token inválido
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Error'
+   */
   // Obter estatísticas de autenticação
   async getAuthStats(req, res, next) {
     try {
@@ -117,6 +267,34 @@ class AuthController {
     }
   }
 
+  /**
+   * @swagger
+   * /auth/cleanup:
+   *   post:
+   *     summary: Limpar tokens expirados
+   *     description: Remove tokens expirados do sistema (endpoint administrativo)
+   *     tags: [Autenticação]
+   *     security:
+   *       - bearerAuth: []
+   *     responses:
+   *       200:
+   *         description: Limpeza iniciada com sucesso
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                 message:
+   *                   type: string
+   *       401:
+   *         description: Token inválido
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Error'
+   */
   // Limpar tokens expirados (endpoint administrativo)
   async cleanupTokens(req, res, next) {
     try {

@@ -7,121 +7,92 @@ Sistema completo de gerenciamento de usuários com backend Node.js/Express e fro
 ```
 SPS-GROUP-technical-test/
 ├── test-sps-server/           # Backend em Node.js/Express
-│   ├── src/
-│   │   ├── config/           # Configurações da aplicação
-│   │   ├── controllers/      # Controladores da API
-│   │   ├── database/         # Banco de dados fake
-│   │   ├── middleware/       # Middlewares (auth, security, etc.)
-│   │   ├── routes/           # Definição de rotas
-│   │   ├── services/         # Lógica de negócio
-│   │   ├── utils/            # Utilitários
-│   │   └── validations/      # Schemas de validação
-│   ├── tests/                # Testes unitários e integração
-│   └── package.json
 ├── test-sps-react/            # Frontend em React
-│   ├── src/
-│   │   ├── components/       # Componentes reutilizáveis
-│   │   ├── contexts/         # Contextos React
-│   │   ├── hooks/            # Custom hooks
-│   │   ├── pages/            # Páginas da aplicação
-│   │   ├── services/         # Serviços de API
-│   │   ├── styles/           # Estilos CSS
-│   │   └── validations/      # Validações de formulário
-│   ├── __tests__/            # Testes unitários
-│   └── package.json
-├── start-dev.js              # Script de inicialização cross-platform
-├── start-dev.ps1             # Script PowerShell para Windows
-├── start-dev.bat             # Script Batch para Windows
-└── README.md                 # Este arquivo
+├── scripts/                   # Scripts de automação
+└── README.md                  # Este arquivo
 ```
 
 ## 🚀 Pré-requisitos
+
 - **Node.js** (versão 16+)
 - **npm** ou **yarn**
 - **Git** (para clonar o repositório)
 - **Navegador moderno** (Chrome, Firefox, Safari, Edge)
 
+## 🚀 Execução do Projeto
 
-## 🤖 Scripts de Automação
+### ⚡ Método Rápido (Recomendado)
 
-**⚠️ Recomendado:** Use os scripts de automação para uma experiência mais simples e rápida!
+Use os scripts de automação para uma experiência mais simples:
 
-### Scripts de Inicialização
-
-#### Windows (PowerShell) - Recomendado
+#### Windows (PowerShell)
 ```powershell
-.\start-dev.ps1
+.\scripts\start-dev.ps1
 ```
 
 #### Cross-Platform (JavaScript)
 ```bash
-node start-dev.js
+node scripts/start-dev.js
 ```
 
 #### Windows (Batch)
 ```cmd
-start-dev.bat
+scripts\start-dev.bat
 ```
 
-### Scripts de Parada
+### 🛑 Parando os Serviços
 
-#### Cross-Platform (JavaScript) - Recomendado
+#### Cross-Platform (JavaScript)
 ```bash
-node stop-dev.js
+node scripts/stop-dev.js
 ```
 
 #### Windows (PowerShell)
 ```powershell
-.\stop-dev.ps1
+.\scripts\stop-dev.ps1
 ```
 
-#### Windows (Batch)
-```cmd
-stop-dev.bat
-```
+### ⚙️ Opções dos Scripts
 
-### O que os Scripts Fazem
-- ✅ **Verificação automática** de pré-requisitos (Node.js, npm/yarn)
-- ✅ **Configuração automática** de arquivos de ambiente (.env)
-- ✅ **Instalação automática** de dependências (backend + frontend)
-- ✅ **Inicialização simultânea** dos serviços
-- ✅ **Interface amigável** com logs coloridos
-- ✅ **Tratamento de erros** robusto
-
-### Opções dos Scripts
 ```bash
 # Apenas instalar dependências
-node start-dev.js --install-only
+node scripts/start-dev.js --install-only
 
 # Pular instalação (após primeira execução)
-node start-dev.js --skip-install
+node scripts/start-dev.js --skip-install
 
 # Exibir ajuda
-node start-dev.js --help
+node scripts/start-dev.js --help
 ```
 
-**📖 Documentação completa:** [SCRIPTS_README.md](./SCRIPTS_README.md)
+### 📋 O que os Scripts Fazem
 
----
+- ✅ Verificação automática de pré-requisitos
+- ✅ Configuração automática de arquivos de ambiente (.env)
+- ✅ Instalação automática de dependências
+- ✅ Inicialização simultânea dos serviços
+- ✅ Interface amigável com logs coloridos
+- ✅ Tratamento de erros robusto
 
-### Execução Manual (Alternativa)
 
-### 1. Backend (test-sps-server)
+**📖 Documentação completa dos scripts:** [SCRIPTS_README.md](./scripts/SCRIPTS_README.md)
+
+### 🔧 Execução Manual (Alternativa)
+
+#### 1. Backend
 ```bash
 cd test-sps-server
 npm install
 cp env.example .env
-
 npm run dev
 ```
-**Servidor:** http://localhost:3000
-**API Docs:** http://localhost:3000/api-docs
+**Servidor:** http://localhost:3000 | **API Docs:** http://localhost:3000/api-docs
 
-### 2. Frontend (test-sps-react)
+#### 2. Frontend
 ```bash
 cd test-sps-react
 npm install
-cp env.development.example .env.development
+cp env.example .env
 npm start
 ```
 **Aplicação:** http://localhost:3001
@@ -189,12 +160,6 @@ npm start
 - ✅ **Gestão de sessão** com avisos de expiração
 - ✅ **Indicador de força de senha** em tempo real
 
-## 📚 Documentação
-
-- **API Docs:** http://localhost:3000/api-docs
-- **Backend:** [README detalhado](./test-sps-server/readme.md)
-- **Frontend:** [README detalhado](./test-sps-react/README.md)
-
 ## ♿ Recursos de Acessibilidade
 
 ### Frontend
@@ -212,44 +177,19 @@ npm start
 - **Rate limiting**: Proteção contra ataques automatizados
 - **Logs estruturados**: Rastreamento de operações para auditoria
 
-## 🔧 Comandos Úteis
+## 📚 Documentação
 
-### Scripts de Automação
-```bash
-# Iniciar todos os serviços
-node start-dev.js           # Cross-platform
-.\start-dev.ps1             # Windows PowerShell
-start-dev.bat               # Windows Batch
-
-# Parar todos os serviços
-node stop-dev.js            # Cross-platform
-.\stop-dev.ps1              # Windows PowerShell
-stop-dev.bat                # Windows Batch
-```
-
-### Backend
-```bash
-npm run dev          # Desenvolvimento
-npm start           # Produção
-npm test            # Testes
-npm run test:watch  # Testes em watch
-```
-
-### Frontend
-```bash
-npm start           # Desenvolvimento
-npm run build       # Build produção
-npm test            # Testes
-npm run test:watch  # Testes em watch
-```
+- **API Docs:** http://localhost:3000/api/docs/#/
+- **Backend:** [README detalhado](./test-sps-server/readme.md)
+- **Frontend:** [README detalhado](./test-sps-react/README.md)
 
 ## ⚠️ Troubleshooting
 
 ### Scripts de Automação
 - **Erro de permissão (Windows):** Execute PowerShell como administrador
 - **Node.js não encontrado:** Instale Node.js em https://nodejs.org/
-- **Porta ocupada:** Use `node stop-dev.js` para parar serviços anteriores
-- **Arquivo .env não criado:** Execute `node start-dev.js --install-only`
+- **Porta ocupada:** Use `node scripts/stop-dev.js` para parar serviços anteriores
+- **Arquivo .env não criado:** Execute `node scripts/start-dev.js --install-only`
 
 ### Backend
 - **Porta 3000 ocupada:** Altere `PORT` no `.env` do backend

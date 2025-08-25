@@ -88,6 +88,26 @@ src/
 - `npm start` - Desenvolvimento
 - `npm run build` - Produção
 - `npm test` - Testes
+- `npm run test:integration` - Teste de integração (usando script centralizado)
+
+## 🤖 Scripts de Automação
+
+Para facilitar o desenvolvimento, use os scripts centralizados na pasta `scripts/`:
+
+```bash
+# Iniciar todos os serviços
+node ../scripts/start-dev.js
+.\..\scripts\start-dev.ps1
+..\scripts\start-dev.bat
+
+# Parar todos os serviços
+node ../scripts/stop-dev.js
+.\..\scripts\stop-dev.ps1
+..\scripts\stop-dev.bat
+
+# Executar teste de integração
+node ../scripts/test-integration.js
+```
 
 ## 🔗 API Necessária
 

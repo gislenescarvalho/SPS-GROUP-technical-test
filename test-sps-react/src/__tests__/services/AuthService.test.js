@@ -17,9 +17,11 @@ describe('AuthService', () => {
       const email = 'admin@test.com';
       const password = '123456';
       const mockResult = {
-        user: { id: 1, email: 'admin@test.com', type: 'admin' },
-        token: 'mock-token',
-        refreshToken: 'mock-refresh-token'
+        data: {
+          user: { id: 1, email: 'admin@test.com', type: 'admin' },
+          accessToken: 'mock-token',
+          refreshToken: 'mock-refresh-token'
+        }
       };
 
       validateEmail.mockReturnValue(true);
@@ -31,8 +33,13 @@ describe('AuthService', () => {
         email: email.toLowerCase().trim(),
         password
       });
-      expect(secureStorage.setItem).toHaveBeenCalledWith('token', mockResult.token);
-      expect(result).toEqual(mockResult);
+      expect(secureStorage.setItem).toHaveBeenCalledWith('token', mockResult.data.accessToken);
+      expect(result).toEqual({ 
+        success: true, 
+        user: mockResult.data.user, 
+        token: mockResult.data.accessToken, 
+        refreshToken: mockResult.data.refreshToken 
+      });
     });
 
     test('deve validar email inválido', async () => {
@@ -49,6 +56,7 @@ describe('AuthService', () => {
       const email = 'admin@test.com';
       const password = '123456';
       const error = new Error('Credenciais inválidas');
+      error.response = { data: { message: 'Credenciais inválidas' } };
 
       validateEmail.mockReturnValue(true);
       AuthRepository.login.mockRejectedValue(error);
@@ -75,7 +83,7 @@ describe('AuthService', () => {
   describe('getUser', () => {
     test('deve retornar usuário do storage', () => {
       const mockUser = { id: 1, email: 'admin@test.com' };
-      secureStorage.getItem.mockReturnValue(JSON.stringify(mockUser));
+      secureStorage.getItem.mockReturnValue(mockUser);
 
       const result = AuthService.getUser();
 

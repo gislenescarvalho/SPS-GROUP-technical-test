@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { isTokenNearExpiry, getTokenTimeRemaining, isRefreshingToken } from '../services/httpInterceptor';
 import { logSecurityEvent, secureStorage } from '../middleware/security';
@@ -23,8 +23,14 @@ const useSession = () => {
 
   // Extrair dados do contexto de autenticação
   const user = authContext && authContext.user ? authContext.user : null;
-  const logout = authContext && authContext.logout ? authContext.logout : () => {};
-  const refreshToken = authContext && authContext.refreshToken ? authContext.refreshToken : () => Promise.resolve();
+  const logout = useMemo(() => 
+    authContext && authContext.logout ? authContext.logout : () => {}, 
+    [authContext]
+  );
+  const refreshToken = useMemo(() => 
+    authContext && authContext.refreshToken ? authContext.refreshToken : () => Promise.resolve(), 
+    [authContext]
+  );
   const authRefreshing = authContext && authContext.isRefreshing ? authContext.isRefreshing : false;
   const refreshError = authContext && authContext.refreshError ? authContext.refreshError : null;
 

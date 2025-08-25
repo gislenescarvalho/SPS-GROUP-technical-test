@@ -10,10 +10,12 @@ const loginSchema = Joi.object({
       'string.empty': 'Email não pode estar vazio'
     }),
   password: Joi.string()
-    .min(3)
+    .min(4) // Senha em texto plano deve ter pelo menos 4 caracteres
+    .max(128)
     .required()
     .messages({
-      'string.min': 'Senha deve ter pelo menos 3 caracteres',
+      'string.min': 'Senha deve ter pelo menos 4 caracteres',
+      'string.max': 'Senha muito longa',
       'any.required': 'Senha é obrigatória',
       'string.empty': 'Senha não pode estar vazia'
     })

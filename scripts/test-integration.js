@@ -4,12 +4,12 @@
  * Script para testar a integração entre frontend e backend
  * 
  * Uso:
- * node test-integration.js
+ * node scripts/test-integration.js
  */
 
 const axios = require('axios');
 
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = 'http://localhost:3001';
 const TEST_USER = {
   email: 'admin@spsgroup.com.br',
   password: 'Admin@2024!'
@@ -40,12 +40,12 @@ class IntegrationTester {
     
     // Teste de login
     try {
-      const loginResponse = await axios.post(`${BASE_URL}/auth/login`, TEST_USER);
-      this.token = loginResponse.data.token;
+      const loginResponse = await axios.post(`${BASE_URL}/api/auth/login`, TEST_USER);
+      this.token = loginResponse.data.data.accessToken;
       this.addResult('Login', 'PASS', 'Login realizado com sucesso');
       
       // Teste de logout
-      await axios.post(`${BASE_URL}/auth/logout`, {}, {
+      await axios.post(`${BASE_URL}/api/auth/logout`, {}, {
         headers: { Authorization: `Bearer ${this.token}` }
       });
       this.addResult('Logout', 'PASS', 'Logout realizado com sucesso');
@@ -60,7 +60,7 @@ class IntegrationTester {
     
     try {
       // Teste de CORS
-      const corsResponse = await axios.get(`${BASE_URL}/users`, {
+      const corsResponse = await axios.get(`${BASE_URL}/api/users`, {
         headers: { 'Origin': 'http://malicious-site.com' }
       });
       this.addResult('CORS', 'FAIL', 'CORS não está bloqueando origens maliciosas');
@@ -74,7 +74,7 @@ class IntegrationTester {
 
     // Teste de headers de segurança
     try {
-      const response = await axios.get(`${BASE_URL}/users`, {
+      const response = await axios.get(`${BASE_URL}/api/users`, {
         headers: { Authorization: `Bearer ${this.token}` }
       });
       
@@ -101,7 +101,7 @@ class IntegrationTester {
     // Teste de rate limiting
     try {
       const promises = Array(105).fill().map(() => 
-        axios.get(`${BASE_URL}/users`, {
+        axios.get(`${BASE_URL}/api/users`, {
           headers: { Authorization: `Bearer ${this.token}` }
         })
       );
@@ -134,15 +134,15 @@ class IntegrationTester {
 
     try {
       // Teste de listagem
-      const listResponse = await axios.get(`${BASE_URL}/users`, { headers });
+      const listResponse = await axios.get(`${BASE_URL}/api/users`, { headers });
       this.addResult('List Users', 'PASS', `Encontrados ${listResponse.data.users?.length || 0} usuários`);
 
       // Teste de busca
-      const searchResponse = await axios.get(`${BASE_URL}/users?search=admin`, { headers });
+      const searchResponse = await axios.get(`${BASE_URL}/api/users?search=admin`, { headers });
       this.addResult('Search Users', 'PASS', 'Busca funcionando');
 
       // Teste de paginação
-      const paginationResponse = await axios.get(`${BASE_URL}/users?page=1&limit=5`, { headers });
+      const paginationResponse = await axios.get(`${BASE_URL}/api/users?page=1&limit=5`, { headers });
       this.addResult('Pagination', 'PASS', 'Paginação funcionando');
 
       // Teste de criação (se houver dados de paginação)
@@ -154,21 +154,21 @@ class IntegrationTester {
           type: 'user'
         };
 
-        const createResponse = await axios.post(`${BASE_URL}/users`, newUser, { headers });
+        const createResponse = await axios.post(`${BASE_URL}/api/users`, newUser, { headers });
         this.addResult('Create User', 'PASS', 'Usuário criado com sucesso');
 
         // Teste de atualização
         const userId = createResponse.data.id;
         const updateData = { name: 'Updated Test User' };
-        await axios.put(`${BASE_URL}/users/${userId}`, updateData, { headers });
+        await axios.put(`${BASE_URL}/api/users/${userId}`, updateData, { headers });
         this.addResult('Update User', 'PASS', 'Usuário atualizado com sucesso');
 
         // Teste de busca por ID
-        await axios.get(`${BASE_URL}/users/${userId}`, { headers });
+        await axios.get(`${BASE_URL}/api/users/${userId}`, { headers });
         this.addResult('Get User by ID', 'PASS', 'Busca por ID funcionando');
 
         // Teste de exclusão
-        await axios.delete(`${BASE_URL}/users/${userId}`, { headers });
+        await axios.delete(`${BASE_URL}/api/users/${userId}`, { headers });
         this.addResult('Delete User', 'PASS', 'Usuário excluído com sucesso');
       }
 
@@ -248,7 +248,7 @@ class IntegrationTester {
 // Verificar se o backend está rodando
 async function checkBackend() {
   try {
-    await axios.get(`${BASE_URL}/health`);
+    await axios.get(`${BASE_URL}/api/health`);
     return true;
   } catch (error) {
     return false;
@@ -261,8 +261,8 @@ async function main() {
   
   const backendRunning = await checkBackend();
   if (!backendRunning) {
-    console.error('❌ Backend não está rodando em http://localhost:3000');
-    console.log('💡 Execute: cd test-sps-server && npm run dev');
+    console.error('❌ Backend não está rodando em http://localhost:3001');
+    console.log('💡 Execute: cd test-sps-server && npm start');
     process.exit(1);
   }
 

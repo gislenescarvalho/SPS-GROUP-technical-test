@@ -359,12 +359,15 @@ export const AuthProvider = ({ children }) => {
   }, [handleStorageChange, handleLogoutEvent]);
 
   useEffect(() => {
+    const refreshTimeout = refreshTimeoutRef.current;
+    const activityTimeout = activityTimeoutRef.current;
+    
     return () => {
-      if (refreshTimeoutRef.current) {
-        clearTimeout(refreshTimeoutRef.current);
+      if (refreshTimeout) {
+        clearTimeout(refreshTimeout);
       }
-      if (activityTimeoutRef.current) {
-        clearTimeout(activityTimeoutRef.current);
+      if (activityTimeout) {
+        clearTimeout(activityTimeout);
       }
     };
   }, []);

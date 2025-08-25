@@ -24,7 +24,7 @@ const helmetConfig = {
   hidePoweredBy: true
 };
 
-// Cache simples em memória para rate limiting
+// Cache para rate limiting
 const rateLimitCache = new Map();
 
 const rateLimit = async (req, res, next) => {
@@ -33,45 +33,70 @@ const rateLimit = async (req, res, next) => {
     return next();
   }
 
-  const clientIP = req.ip || req.connection.remoteAddress;
+  const clientId = req.ip || req.connection.remoteAddress;
   const now = Date.now();
-  const windowMs = config.rateLimit.windowMs || 15 * 60 * 1000;
-  const max = config.rateLimit.max || 100;
-  
+  const windowMs = config.rateLimit.windowMs;
+  const maxRequests = config.rateLimit.max;
+
   // Limpar entradas expiradas
   for (const [key, data] of rateLimitCache.entries()) {
     if (now - data.timestamp > windowMs) {
       rateLimitCache.delete(key);
     }
   }
-  
-  const key = `rate_limit:${clientIP}`;
-  const current = rateLimitCache.get(key);
-  
-  if (!current) {
-    rateLimitCache.set(key, {
+
+  // Verificar se o cliente existe no cache
+  if (!rateLimitCache.has(clientId)) {
+    rateLimitCache.set(clientId, {
       count: 1,
-      timestamp: now
-    });
-  } else if (now - current.timestamp > windowMs) {
-    rateLimitCache.set(key, {
-      count: 1,
-      timestamp: now
+      timestamp: now,
+      blocked: false,
+      blockUntil: 0
     });
   } else {
-    current.count++;
-    if (current.count > max) {
+    const clientData = rateLimitCache.get(clientId);
+    
+    // Verificar se está bloqueado
+    if (clientData.blocked && now < clientData.blockUntil) {
+      const remainingTime = Math.ceil((clientData.blockUntil - now) / 1000);
       return res.status(429).json({
-        error: config.rateLimit.message?.error || 'Muitas requisições. Tente novamente em alguns minutos.',
-        retryAfter: Math.ceil((windowMs - (now - current.timestamp)) / 1000),
-        timestamp: new Date().toISOString()
+        success: false,
+        error: `Muitas requisições. Tente novamente em ${remainingTime} segundos.`,
+        retryAfter: remainingTime
       });
     }
+
+    // Resetar se a janela de tempo expirou
+    if (now - clientData.timestamp > windowMs) {
+      clientData.count = 1;
+      clientData.timestamp = now;
+      clientData.blocked = false;
+      clientData.blockUntil = 0;
+    } else {
+      clientData.count++;
+      
+      // Bloquear se excedeu o limite
+      if (clientData.count > maxRequests) {
+        const blockDuration = Math.min(windowMs * 2, 300000); // Máximo 5 minutos
+        clientData.blocked = true;
+        clientData.blockUntil = now + blockDuration;
+        
+        return res.status(429).json({
+          success: false,
+          error: `Muitas requisições. Tente novamente em ${Math.ceil(blockDuration / 1000)} segundos.`,
+          retryAfter: Math.ceil(blockDuration / 1000)
+        });
+      }
+    }
   }
-  
-  res.setHeader('X-RateLimit-Limit', max);
-  res.setHeader('X-RateLimit-Remaining', Math.max(0, max - (current?.count || 1)));
-  res.setHeader('X-RateLimit-Reset', Math.ceil((current?.timestamp || now) + windowMs) / 1000);
+
+  // Adicionar headers de rate limiting
+  const currentData = rateLimitCache.get(clientId);
+  if (currentData) {
+    res.setHeader('X-RateLimit-Limit', maxRequests);
+    res.setHeader('X-RateLimit-Remaining', Math.max(0, maxRequests - currentData.count));
+    res.setHeader('X-RateLimit-Reset', Math.ceil((currentData.timestamp + windowMs) / 1000));
+  }
   
   next();
 };

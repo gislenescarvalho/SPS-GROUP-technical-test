@@ -20,7 +20,7 @@
     "test:watch": "react-scripts test --watch",
     "test:coverage": "react-scripts test --coverage --watchAll=false",
     "test:ci": "react-scripts test --coverage --watchAll=false --ci",
-    "test:integration": "node test-integration.js",
+    "test:integration": "node ../scripts/test-integration.js",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {

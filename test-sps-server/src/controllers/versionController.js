@@ -1,6 +1,43 @@
 const APIVersioning = require('../middleware/versioning');
 
 class VersionController {
+  /**
+   * @swagger
+   * /version:
+   *   get:
+   *     summary: Obter informações da versão atual
+   *     description: Retorna informações sobre a versão atual da API
+   *     tags: [Versionamento]
+   *     responses:
+   *       200:
+   *         description: Informações da versão obtidas com sucesso
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                 data:
+   *                   type: object
+   *                   properties:
+   *                     version:
+   *                       type: string
+   *                     deprecated:
+   *                       type: boolean
+   *                     features:
+   *                       type: array
+   *                       items:
+   *                         type: string
+   *                     server:
+   *                       type: object
+   *                       properties:
+   *                         environment:
+   *                           type: string
+   *                         timestamp:
+   *                           type: string
+   *                           format: date-time
+   */
   // Obter informações da versão atual
   async getVersionInfo(req, res, next) {
     try {

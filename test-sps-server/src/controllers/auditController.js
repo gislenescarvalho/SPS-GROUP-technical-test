@@ -1,6 +1,82 @@
 const auditService = require('../services/auditService');
 
 class AuditController {
+  /**
+   * @swagger
+   * /audit:
+   *   get:
+   *     summary: Obter logs de auditoria
+   *     description: Retorna logs de auditoria com filtros opcionais
+   *     tags: [Auditoria]
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: query
+   *         name: userId
+   *         schema:
+   *           type: integer
+   *         description: Filtrar por ID do usuário
+   *       - in: query
+   *         name: action
+   *         schema:
+   *           type: string
+   *         description: Filtrar por tipo de ação
+   *       - in: query
+   *         name: severity
+   *         schema:
+   *           type: string
+   *           enum: [low, medium, high, critical]
+   *         description: Filtrar por severidade
+   *       - in: query
+   *         name: startDate
+   *         schema:
+   *           type: string
+   *           format: date-time
+   *         description: Data de início para filtro
+   *       - in: query
+   *         name: endDate
+   *         schema:
+   *           type: string
+   *           format: date-time
+   *         description: Data de fim para filtro
+   *       - in: query
+   *         name: limit
+   *         schema:
+   *           type: integer
+   *           default: 100
+   *         description: Limite de registros
+   *       - in: query
+   *         name: offset
+   *         schema:
+   *           type: integer
+   *           default: 0
+   *         description: Offset para paginação
+   *     responses:
+   *       200:
+   *         description: Logs obtidos com sucesso
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                 data:
+   *                   type: object
+   *                   properties:
+   *                     logs:
+   *                       type: array
+   *                       items:
+   *                         $ref: '#/components/schemas/AuditLog'
+   *                     total:
+   *                       type: integer
+   *       401:
+   *         description: Token inválido
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Error'
+   */
   // Obter logs de auditoria
   async getAuditLogs(req, res, next) {
     try {

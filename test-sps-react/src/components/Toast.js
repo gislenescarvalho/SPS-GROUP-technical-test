@@ -39,7 +39,8 @@ const Toast = ({ message, type = 'info', duration = 5000, onClose, id }) => {
       zIndex: 1000,
       border: '1px solid',
       fontSize: 'var(--font-size-medium)',
-      lineHeight: '1.4'
+      lineHeight: '1.4',
+      fontWeight: '500'
     };
 
     switch (type) {
@@ -47,30 +48,34 @@ const Toast = ({ message, type = 'info', duration = 5000, onClose, id }) => {
         return {
           ...baseStyles,
           backgroundColor: 'var(--success-color)',
-          color: 'white',
-          borderColor: 'var(--success-color)'
+          color: '#ffffff',
+          borderColor: 'var(--success-color)',
+          textShadow: '0 1px 2px rgba(0, 0, 0, 0.2)'
         };
       case 'error':
         return {
           ...baseStyles,
           backgroundColor: 'var(--error-color)',
-          color: 'white',
-          borderColor: 'var(--error-color)'
+          color: '#ffffff',
+          borderColor: 'var(--error-color)',
+          textShadow: '0 1px 2px rgba(0, 0, 0, 0.2)'
         };
       case 'warning':
         return {
           ...baseStyles,
           backgroundColor: 'var(--warning-color)',
-          color: 'white',
-          borderColor: 'var(--warning-color)'
+          color: '#000000',
+          borderColor: 'var(--warning-color)',
+          textShadow: '0 1px 2px rgba(255, 255, 255, 0.3)'
         };
       case 'info':
       default:
         return {
           ...baseStyles,
           backgroundColor: 'var(--primary-color)',
-          color: 'white',
-          borderColor: 'var(--primary-color)'
+          color: '#ffffff',
+          borderColor: 'var(--primary-color)',
+          textShadow: '0 1px 2px rgba(0, 0, 0, 0.2)'
         };
     }
   };
@@ -122,7 +127,8 @@ const Toast = ({ message, type = 'info', duration = 5000, onClose, id }) => {
           minHeight: '24px',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center'
+          justifyContent: 'center',
+          borderRadius: '4px'
         }}
         onMouseEnter={(e) => e.target.style.opacity = '1'}
         onMouseLeave={(e) => e.target.style.opacity = '0.8'}

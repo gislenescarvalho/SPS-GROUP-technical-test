@@ -1,13 +1,11 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { useAccessibility } from "../contexts/AccessibilityContext";
 import Navbar from "../components/Navbar";
 import AccessibilityPanel from "../components/AccessibilityPanel";
 
 function Home() {
   const { user } = useAuth();
-  const { theme } = useAccessibility();
 
   return (
     <div>
@@ -50,7 +48,7 @@ function Home() {
             <Link
               to="/users"
               style={{
-                display: "block",
+                display: "flex",
                 backgroundColor: "var(--primary-color)",
                 color: "white",
                 textDecoration: "none",
@@ -61,7 +59,6 @@ function Home() {
                 fontSize: "var(--font-size-large)",
                 transition: "all 0.3s ease",
                 minHeight: "20px",
-                display: "flex",
                 alignItems: "center",
                 justifyContent: "center"
               }}

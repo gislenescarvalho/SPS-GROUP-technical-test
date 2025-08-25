@@ -8,10 +8,12 @@ const APIVersioning = require('./middleware/versioning');
 
 const routes = Router();
 
+// Rotas que não precisam de versionamento (como documentação)
+routes.use('/docs', docsRoutes);
+
+// Aplicar versionamento apenas nas rotas da API
 routes.use(APIVersioning.detectVersion);
 routes.use(APIVersioning.addVersionInfo);
-
-routes.use('/docs', docsRoutes);
 
 routes.use('/auth', authRoutes);
 routes.use('/users', userRoutes);

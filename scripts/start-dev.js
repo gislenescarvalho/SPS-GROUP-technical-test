@@ -107,7 +107,11 @@ function installDependencies(projectPath, projectName, packageManager) {
     console.log(colorize(`\n📦 Instalando dependências para ${projectName}...`, 'yellow'));
     
     const originalDir = process.cwd();
-    process.chdir(projectPath);
+    // Obter o diretório raiz do projeto (onde está o script)
+    const projectRoot = path.dirname(__dirname);
+    const fullProjectPath = path.join(projectRoot, projectPath);
+    
+    process.chdir(fullProjectPath);
     
     try {
         if (packageManager === 'yarn') {
@@ -128,28 +132,39 @@ function installDependencies(projectPath, projectName, packageManager) {
 function setupEnvironmentFiles() {
     console.log(colorize('\n🔧 Configurando arquivos de ambiente...', 'yellow'));
     
+    // Obter o diretório raiz do projeto (onde está o script)
+    const projectRoot = path.dirname(__dirname);
+    
     // Configurar arquivo .env para o backend
-    const backendEnvPath = path.join('test-sps-server', '.env');
-    const backendEnvExamplePath = path.join('test-sps-server', 'env.example');
+    const backendEnvPath = path.join(projectRoot, 'test-sps-server', '.env');
+    const backendEnvExamplePath = path.join(projectRoot, 'test-sps-server', 'env.example');
     
     if (!fs.existsSync(backendEnvPath)) {
         console.log(colorize('Criando arquivo .env para o backend...', 'cyan'));
-        fs.copyFileSync(backendEnvExamplePath, backendEnvPath);
-        console.log(colorize('✓ Arquivo .env criado para o backend', 'green'));
+        try {
+            fs.copyFileSync(backendEnvExamplePath, backendEnvPath);
+            console.log(colorize('✓ Arquivo .env criado para o backend', 'green'));
+        } catch (error) {
+            console.error(colorize(`❌ Erro ao criar arquivo .env para o backend: ${error.message}`, 'red'));
+        }
     } else {
         console.log(colorize('✓ Arquivo .env já existe para o backend', 'green'));
     }
     
     // Configurar arquivo .env para o frontend
-    const frontendEnvPath = path.join('test-sps-react', '.env.development');
-    const frontendEnvExamplePath = path.join('test-sps-react', 'env.development.example');
+    const frontendEnvPath = path.join(projectRoot, 'test-sps-react', '.env');
+    const frontendEnvExamplePath = path.join(projectRoot, 'test-sps-react', 'env.example');
     
     if (!fs.existsSync(frontendEnvPath)) {
-        console.log(colorize('Criando arquivo .env.development para o frontend...', 'cyan'));
-        fs.copyFileSync(frontendEnvExamplePath, frontendEnvPath);
-        console.log(colorize('✓ Arquivo .env.development criado para o frontend', 'green'));
+        console.log(colorize('Criando arquivo .env para o frontend...', 'cyan'));
+        try {
+            fs.copyFileSync(frontendEnvExamplePath, frontendEnvPath);
+            console.log(colorize('✓ Arquivo .env criado para o frontend', 'green'));
+        } catch (error) {
+            console.error(colorize(`❌ Erro ao criar arquivo .env para o frontend: ${error.message}`, 'red'));
+        }
     } else {
-        console.log(colorize('✓ Arquivo .env.development já existe para o frontend', 'green'));
+        console.log(colorize('✓ Arquivo .env já existe para o frontend', 'green'));
     }
 }
 
@@ -245,10 +260,13 @@ async function main() {
     // Iniciar serviços
     console.log(colorize('\n🚀 Iniciando serviços...', 'yellow'));
     
+    // Obter o diretório raiz do projeto
+    const projectRoot = path.dirname(__dirname);
+    
     // Iniciar backend
     const backendCommand = packageManager === 'yarn' ? 'yarn' : 'npm';
     const backendArgs = packageManager === 'yarn' ? ['dev'] : ['run', 'dev'];
-    const backendProcess = runCommandInBackground(backendCommand, backendArgs, 'test-sps-server', 'Backend');
+    const backendProcess = runCommandInBackground(backendCommand, backendArgs, path.join(projectRoot, 'test-sps-server'), 'Backend');
     
     // Aguardar um pouco para o backend inicializar
     console.log(colorize('Aguardando backend inicializar...', 'cyan'));
@@ -257,7 +275,7 @@ async function main() {
     // Iniciar frontend
     const frontendCommand = packageManager === 'yarn' ? 'yarn' : 'npm';
     const frontendArgs = packageManager === 'yarn' ? ['start'] : ['start'];
-    const frontendProcess = runCommandInBackground(frontendCommand, frontendArgs, 'test-sps-react', 'Frontend');
+    const frontendProcess = runCommandInBackground(frontendCommand, frontendArgs, path.join(projectRoot, 'test-sps-react'), 'Frontend');
     
     console.log(colorize('\n==========================================', 'magenta'));
     console.log(colorize('✅ Setup concluído com sucesso!', 'green'));

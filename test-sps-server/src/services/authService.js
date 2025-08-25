@@ -76,6 +76,7 @@ class AuthService {
       throw new Error('Credenciais inválidas');
     }
 
+    // Comparar senha usando bcrypt
     const isValidPassword = await bcrypt.compare(password, user.password);
     
     if (!isValidPassword) {
@@ -85,8 +86,6 @@ class AuthService {
     // Gerar tokens
     const accessToken = this.generateAccessToken(user);
     const refreshToken = this.generateRefreshToken(user);
-
-    
 
     return {
       user: {

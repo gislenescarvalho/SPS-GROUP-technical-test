@@ -104,15 +104,3 @@ export const validateData = async (schema, data) => {
     return { isValid: false, errors };
   }
 };
-
-// Função para verificar se email já existe
-export const checkEmailExists = async (email, currentUserId = null) => {
-  try {
-    // Esta função será implementada para verificar no backend
-    // Por enquanto, retorna false (email não existe)
-    return false;
-  } catch (error) {
-    console.error('Erro ao verificar email:', error);
-    return false;
-  }
-};

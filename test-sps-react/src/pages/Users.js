@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
-import { useAuth } from "../contexts/AuthContext";
 import { useToastContext } from "../contexts/ToastContext";
 import UserService from "../services/UserService";
 import useApi from "../hooks/useApi";
@@ -32,6 +31,8 @@ function Users() {
   });
   const [creating, setCreating] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
+  const [passwordMatch, setPasswordMatch] = useState(true);
+  const [passwordMatchMessage, setPasswordMatchMessage] = useState("");
   
   // Estados para modais de confirmação
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -40,16 +41,22 @@ function Users() {
   const [userToDelete, setUserToDelete] = useState(null);
   const [modalMessage, setModalMessage] = useState("");
 
+  // Ref para controlar requisições em andamento
+  const loadingRef = useRef(false);
+
   // Hook para gerenciar chamadas da API
   const { loading, error, execute, clearError } = useApi((params) => UserService.list(params));
   const { showSuccess, showError } = useToastContext();
 
-  useEffect(() => {
-    loadUsers();
-  }, [pagination.page, pagination.limit, searchTerm]);
+  const loadUsers = useCallback(async () => {
+    // Evitar múltiplas chamadas simultâneas
+    if (loadingRef.current) {
+      console.log('Requisição já em andamento, ignorando...');
+      return;
+    }
 
-  const loadUsers = async () => {
     try {
+      loadingRef.current = true;
       clearError();
       const params = {
         page: pagination.page,
@@ -57,8 +64,7 @@ function Users() {
         search: searchTerm
       };
       
-
-      
+      console.log('Carregando usuários com params:', params);
       const data = await execute(params);
       
       // Atualizar estado com dados da paginação
@@ -72,13 +78,40 @@ function Users() {
       }
     } catch (error) {
       console.error('Erro ao carregar usuários:', error);
-      
+    } finally {
+      loadingRef.current = false;
+    }
+  }, [pagination.page, pagination.limit, searchTerm]);
 
+  useEffect(() => {
+    loadUsers();
+  }, [loadUsers]);
+
+  // Função para verificar se as senhas coincidem
+  const checkPasswordMatch = (password, confirmPassword) => {
+    if (!password || !confirmPassword) {
+      setPasswordMatch(true);
+      setPasswordMatchMessage("");
+      return;
+    }
+    
+    if (password === confirmPassword) {
+      setPasswordMatch(true);
+      setPasswordMatchMessage("Senhas coincidem!");
+    } else {
+      setPasswordMatch(false);
+      setPasswordMatchMessage("As senhas não coincidem. Por favor, verifique.");
     }
   };
 
   const handleCreateUser = async (e) => {
     e.preventDefault();
+    
+    // Verificar se as senhas coincidem
+    if (!passwordMatch) {
+      setPasswordMatchMessage("As senhas não coincidem. Por favor, corrija antes de continuar.");
+      return;
+    }
     
     // Validar dados antes de enviar
     const validation = await validateData(createUserSchema, newUser);
@@ -101,6 +134,9 @@ function Users() {
       await UserService.create(newUser);
       setNewUser({ name: "", email: "", type: "user", password: "", confirmPassword: "" });
       setShowCreateForm(false);
+      setValidationErrors({});
+      setPasswordMatch(true);
+      setPasswordMatchMessage("");
       showSuccess("Usuário criado com sucesso!");
       loadUsers();
     } catch (error) {
@@ -248,7 +284,16 @@ function Users() {
             Gerenciamento de Usuários
           </h1>
           <button
-            onClick={() => setShowCreateForm(!showCreateForm)}
+            onClick={() => {
+              if (showCreateForm) {
+                // Limpar formulário ao cancelar
+                setNewUser({ name: "", email: "", type: "user", password: "", confirmPassword: "" });
+                setValidationErrors({});
+                setPasswordMatch(true);
+                setPasswordMatchMessage("");
+              }
+              setShowCreateForm(!showCreateForm);
+            }}
             style={{
               backgroundColor: "var(--success-color)",
               color: "white",
@@ -437,7 +482,11 @@ function Users() {
                   type="password"
                   name="password"
                   value={newUser.password}
-                  onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                  onChange={(e) => {
+                    const newPassword = e.target.value;
+                    setNewUser({ ...newUser, password: newPassword });
+                    checkPasswordMatch(newPassword, newUser.confirmPassword);
+                  }}
                   error={validationErrors.password}
                   required
                   minLength={8}
@@ -449,7 +498,11 @@ function Users() {
                   type="password"
                   name="confirmPassword"
                   value={newUser.confirmPassword}
-                  onChange={(e) => setNewUser({ ...newUser, confirmPassword: e.target.value })}
+                  onChange={(e) => {
+                    const newConfirmPassword = e.target.value;
+                    setNewUser({ ...newUser, confirmPassword: newConfirmPassword });
+                    checkPasswordMatch(newUser.password, newConfirmPassword);
+                  }}
                   error={validationErrors.confirmPassword}
                   required
                   minLength={8}
@@ -465,6 +518,28 @@ function Users() {
                 <PasswordStrengthIndicator password={newUser.password} />
               </div>
               
+              {/* Mensagem de validação de senha */}
+              {passwordMatchMessage && (
+                <div style={{
+                  marginBottom: "var(--spacing-lg)",
+                  padding: "var(--spacing-md)",
+                  borderRadius: "4px",
+                  backgroundColor: passwordMatch ? "var(--success-color)" : "var(--danger-color)",
+                  color: "white",
+                  fontSize: "var(--font-size-medium)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "var(--spacing-sm)",
+                  border: `1px solid ${passwordMatch ? "var(--success-color)" : "var(--danger-color)"}`,
+                  boxShadow: `0 2px 4px rgba(${passwordMatch ? "40, 167, 69" : "220, 53, 69"}, 0.2)`
+                }}>
+                  <span style={{ fontSize: "var(--font-size-large)" }}>
+                    {passwordMatch ? "✅" : "❌"}
+                  </span>
+                  <span>{passwordMatchMessage}</span>
+                </div>
+              )}
+              
               <div style={{
                 display: "flex",
                 gap: "var(--spacing-md)",
@@ -474,21 +549,21 @@ function Users() {
               }}>
                 <button
                   type="submit"
-                  disabled={creating}
+                  disabled={creating || !passwordMatch}
                   style={{
-                    backgroundColor: creating ? "var(--disabled-color)" : "var(--primary-color)",
+                    backgroundColor: creating || !passwordMatch ? "var(--disabled-color)" : "var(--primary-color)",
                     color: "white",
                     border: "none",
                     padding: "var(--spacing-sm) var(--spacing-md)",
                     borderRadius: "4px",
-                    cursor: creating ? "not-allowed" : "pointer",
+                    cursor: creating || !passwordMatch ? "not-allowed" : "pointer",
                     fontSize: "var(--font-size-medium)",
                     transition: "background-color 0.3s ease",
                     minHeight: "44px"
                   }}
-                  aria-label={creating ? "Criando usuário..." : "Criar usuário"}
+                  aria-label={creating ? "Criando usuário..." : !passwordMatch ? "Senhas não coincidem" : "Criar usuário"}
                 >
-                  {creating ? <LoaderInline text="Criando..." /> : "Criar usuário"}
+                  {creating ? <LoaderInline text="Criando..." /> : !passwordMatch ? "Senhas Não Coincidem" : "Criar usuário"}
                 </button>
               </div>
             </form>

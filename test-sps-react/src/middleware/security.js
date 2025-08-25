@@ -1,4 +1,4 @@
-import { securityUtils } from '../config/security';
+
 
 export const sanitizeInput = (input) => {
   if (typeof input !== 'string') return input;
@@ -48,9 +48,8 @@ export const validatePassword = (password) => {
 };
 
 export const generateCSRFToken = () => {
-  const array = new Uint8Array(32);
-  crypto.getRandomValues(array);
-  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+  // Para desenvolvimento, usar timestamp + random simples
+  return Date.now().toString(36) + Math.random().toString(36).substr(2);
 };
 
 export const validateCSRFToken = (token) => {

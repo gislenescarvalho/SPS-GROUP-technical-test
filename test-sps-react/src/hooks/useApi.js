@@ -24,7 +24,7 @@ const useApi = (apiCall) => {
     } finally {
       setLoading(false);
     }
-  }, [apiCall]);
+  }, []);
 
   const reset = useCallback(() => {
     setLoading(false);
