@@ -1,12 +1,12 @@
 # SPS React Test
 
-Aplicação React para gerenciamento de usuários com autenticação JWT, acessibilidade completa e design responsivo.
+Aplicação React para gerenciamento de usuários com autenticação JWT, recursos de acessibilidade e design responsivo.
 
 ## ✅ Funcionalidades
 
 - **Autenticação**: Login JWT com proteção de rotas
 - **Usuários**: CRUD completo (listar, criar, editar, excluir)
-- **Acessibilidade**: Modo escuro/claro, controle de fonte, alto contraste, navegação por teclado
+- **Acessibilidade**: Modo escuro/claro e navegação por teclado
 - **Responsivo**: Mobile-first com breakpoints otimizados
 - **Modais**: Confirmações e feedback de operações
 - **Validações**: Campos obrigatórios, email único, confirmações
@@ -39,9 +39,6 @@ npm start
 ## 🎛️ Acessibilidade
 
 - **Tema**: Alternar claro/escuro
-- **Fonte**: A-, A, A+ para tamanhos
-- **Contraste**: Alto contraste para melhor visão
-- **Movimento**: Reduzir animações
 - **Teclado**: Navegação completa via Tab
 
 ## 📱 Responsividade

@@ -152,7 +152,7 @@ npm start
 - ✅ **Interface responsiva** com design mobile-first
 - ✅ **Autenticação JWT** com proteção de rotas
 - ✅ **CRUD completo** de usuários com modais de confirmação
-- ✅ **Painel de acessibilidade** (tema escuro/claro, fonte, contraste)
+- ✅ **Painel de acessibilidade** (tema escuro/claro)
 - ✅ **Validação de formulários** em tempo real
 - ✅ **Navegação por teclado** completa
 - ✅ **Modais interativos** para feedback e confirmações
@@ -164,9 +164,6 @@ npm start
 
 ### Frontend
 - **Tema adaptável**: Alternância entre modo claro e escuro
-- **Controle de fonte**: A-, A, A+ para diferentes tamanhos
-- **Alto contraste**: Modo de alto contraste para melhor visibilidade
-- **Redução de movimento**: Opção para desabilitar animações
 - **Navegação por teclado**: Navegação completa via Tab, Enter, Esc
 - **ARIA labels**: Atributos de acessibilidade em todos os elementos
 - **Foco visível**: Indicadores claros de foco para navegação
